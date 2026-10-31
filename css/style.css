@@ -1107,6 +1107,26 @@ body.weather-mode-night #map-container {
   line-height: 1.4;
 }
 
+/* 생물 상세: 출처 */
+.detail-sources {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.detail-sources a {
+  color: #67e8f9;
+  font-size: 12px;
+  text-decoration: underline;
+  word-break: keep-all;
+}
+
+.detail-source-note {
+  margin-top: 6px;
+  font-size: 11px;
+  color: #94a3b8;
+}
+
 /* 퀴즈 포획 뷰 */
 .capture-view {
   padding: 14px 18px 16px;

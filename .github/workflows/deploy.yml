@@ -31,6 +31,10 @@ jobs:
           mkdir _site
           cp -r index.html css js _site/
           touch _site/.nojekyll
+          # 브라우저가 예전 파일을 쓰지 않도록 배포할 때마다 버전 번호를 붙입니다.
+          ver="${GITHUB_SHA::7}"
+          sed -i "s#js/bundle.js\"#js/bundle.js?v=${ver}\"#; s#css/style.css\"#css/style.css?v=${ver}\"#" _site/index.html
+          grep -q "bundle.js?v=${ver}" _site/index.html
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:

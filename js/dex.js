@@ -320,12 +320,26 @@ export class DexManager {
     document.getElementById('detail-sci-name').innerText = creature.sciName;
     document.getElementById('detail-category').innerText = creature.category;
     document.getElementById('detail-endangered').innerText = creature.endangered;
-    document.getElementById('detail-biome').innerText = `${creature.biome.toUpperCase()} 바이옴`;
+    document.getElementById('detail-biome').innerText = creature.isPast ? '⏳ 시간의 틈' : `${creature.biome.toUpperCase()} 바이옴`;
     document.getElementById('detail-habitat').innerText = creature.habitat;
     document.getElementById('detail-foodchain').innerText = creature.foodChain;
     document.getElementById('detail-description').innerText = creature.description;
     document.getElementById('detail-first-caught').innerText = dateStr;
     document.getElementById('detail-caught-count').innerText = `${record.count}회 관찰`;
+
+    const sourcesEl = document.getElementById('detail-sources');
+    if (sourcesEl) {
+      sourcesEl.innerHTML = '';
+      (creature.sources || []).forEach(src => {
+        const link = document.createElement('a');
+        link.href = src.url;
+        link.target = '_blank';
+        link.rel = 'noopener noreferrer';
+        link.textContent = src.title;
+        sourcesEl.appendChild(link);
+      });
+      if (!sourcesEl.children.length) sourcesEl.textContent = '출처 정보가 없습니다.';
+    }
 
     const distBadge = document.getElementById('detail-invasive-notice');
     if (distBadge) {
