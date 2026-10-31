@@ -7,6 +7,7 @@
 import { sound } from './audio.js';
 import { QUIZ_STORAGE_KEY } from './constants.js';
 import { QUIZ_UNITS, buildEncounterQuestions, unitLabel } from './questions.js';
+import { renderLearningNote } from './learning.js';
 
 const RECENT_LIMIT = 40;
 
@@ -315,6 +316,8 @@ export class MiniGameEngine {
     document.getElementById('success-points-gain').innerText = pointsText;
     document.getElementById('success-exp-gain').innerText = `탐사 EXP +${creature.points + bonusExp}`;
 
+    renderLearningNote(document.getElementById('success-learning-note'), creature);
+    successCard.scrollTop = 0;
     successCard.classList.remove('hidden');
     this.unbindKeys();
 

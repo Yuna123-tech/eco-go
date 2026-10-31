@@ -2082,15 +2082,15 @@
       if (this.onWeatherChange) this.onWeatherChange(this.currentWeather);
     }
     createRainEffectElement() {
-      let el = document.getElementById("weather-rain-canvas");
-      if (!el) {
-        el = document.createElement("canvas");
-        el.id = "weather-rain-canvas";
-        el.className = "weather-rain-canvas pointer-events-none";
-        document.body.appendChild(el);
+      let el2 = document.getElementById("weather-rain-canvas");
+      if (!el2) {
+        el2 = document.createElement("canvas");
+        el2.id = "weather-rain-canvas";
+        el2.className = "weather-rain-canvas pointer-events-none";
+        document.body.appendChild(el2);
       }
-      this.rainCanvas = el;
-      this.rainCtx = el.getContext("2d");
+      this.rainCanvas = el2;
+      this.rainCtx = el2.getContext("2d");
       this.resizeRainCanvas();
       window.addEventListener("resize", () => this.resizeRainCanvas());
     }
@@ -2362,12 +2362,12 @@
       }
       ECO_STOPS.forEach((stop) => {
         const dist = this.getDistanceFromPlayer(stop.lat, stop.lng);
-        const el = document.getElementById(`stop-pin-${stop.id}`);
-        if (el) {
+        const el2 = document.getElementById(`stop-pin-${stop.id}`);
+        if (el2) {
           if (dist <= 65) {
-            el.classList.add("in-range");
+            el2.classList.add("in-range");
           } else {
-            el.classList.remove("in-range");
+            el2.classList.remove("in-range");
           }
         }
       });
@@ -3598,6 +3598,158 @@
     return u ? `${u.icon} ${u.grade === "보너스" ? "보너스" : u.grade} · ${u.label}` : "";
   }
 
+  // js/learning.js
+  var ROLE_INFO = {
+    producer: {
+      label: "🌱 생산자",
+      text: "햇빛 등을 이용해 스스로 양분을 만드는 생물이에요. 생태계 먹이 관계의 출발점이에요."
+    },
+    consumer: {
+      label: "🍽️ 소비자",
+      text: "스스로 양분을 만들지 못하고 다른 생물을 먹어서 양분을 얻는 생물이에요."
+    },
+    decomposer: {
+      label: "🍄 분해자",
+      text: "죽은 생물이나 배출물을 분해해 양분을 얻는 생물이에요. 분해된 물질은 다시 흙으로 돌아가 생산자가 이용해요."
+    }
+  };
+  function josa(word, pair) {
+    const [withBatchim, withoutBatchim] = pair.split("/");
+    const hangul = [...word].reverse().find((ch) => ch >= "가" && ch <= "힣");
+    if (!hangul) return `${word}${withBatchim}(${withoutBatchim})`;
+    const hasBatchim = (hangul.charCodeAt(0) - 44032) % 28 !== 0;
+    return word + (hasBatchim ? withBatchim : withoutBatchim);
+  }
+  function isFictional(creature) {
+    return (creature.category || "").includes("상상 캐릭터");
+  }
+  function statusLesson(creature) {
+    const status = `${creature.endangered || ""} ${creature.category || ""}`;
+    if (creature.isInvasive) {
+      return {
+        title: "⚠️ 외래 생물과 생태계 평형",
+        text: "다른 나라에서 들어와 우리 생태계에 피해를 주는 생물이에요. 이런 생물이 크게 늘어나면 토종 생물이 줄어 생태계 평형이 깨질 수 있어요. 기르던 생물을 함부로 버리거나 자연에 풀어 주지 않아야 해요.",
+        unit: "4-2 생물과 환경 · 생태계 평형"
+      };
+    }
+    if (creature.isPast && status.includes("복원")) {
+      return {
+        title: "🌾 사라졌다가 돌아오는 생물",
+        text: "우리나라에서 사라졌다가 사람들의 노력으로 복원하고 있는 생물이에요. 생물이 다시 살아가려면 먹이가 있는 깨끗한 서식지를 지키는 것이 가장 중요해요.",
+        unit: "4-2 생물과 환경 · 생태계 보전"
+      };
+    }
+    if (creature.isPast && (status.includes("화석") || status.includes("공룡"))) {
+      return {
+        title: "🦴 화석이 알려 주는 것",
+        text: "지금은 화석으로만 만날 수 있는 생물이에요. 화석을 보면 옛날 생물의 생김새뿐 아니라 그때의 환경도 짐작할 수 있어요. 예를 들어 바다 생물 화석이 나온 곳은 옛날에 바다였다는 뜻이에요.",
+        unit: "보너스 · 화석과 옛날 생물"
+      };
+    }
+    if (creature.isPast) {
+      return {
+        title: "🕯️ 사람 때문에 사라진 생물",
+        text: "사람의 사냥과 서식지 파괴 등으로 우리 곁에서 사라진 생물이에요. 한 번 멸종한 생물은 다시 되살릴 수 없어요. 그래서 지금 살아 있는 멸종위기 생물을 지키는 것이 중요해요.",
+        unit: "4-2 생물과 환경 · 생태계 보전"
+      };
+    }
+    if (status.includes("멸종위기") || status.includes("천연기념물")) {
+      return {
+        title: "🛡️ 법으로 보호하는 생물",
+        text: "수가 많이 줄어 법으로 보호하는 생물이에요. 살 곳(서식지)을 지키는 것이 가장 중요해요. 관찰할 때는 만지거나 잡아 가지 않고 멀리서 지켜봐요.",
+        unit: "4-2 생물과 환경 · 생태계 보전"
+      };
+    }
+    return {
+      title: "🌍 우리 주변의 생물",
+      text: "흔히 볼 수 있는 생물도 먹고 먹히는 관계로 다른 생물과 이어져 있어요. 한 생물이 사라지면 먹이 그물로 연결된 다른 생물에게도 영향을 줘요.",
+      unit: "4-2 생물과 환경 · 먹이 그물"
+    };
+  }
+  function thinkQuestion(creature, role) {
+    const name = creature.name;
+    if (creature.isInvasive) return `${josa(name, "이/가")} 더 늘어나지 않게 하려면 우리가 할 수 있는 일은 무엇일까요?`;
+    if (creature.isPast && `${creature.endangered} ${creature.category}`.includes("화석")) {
+      if (creature.biome === "harbor") return `${name} 화석이 산꼭대기 지층에서 발견된다면, 그곳은 옛날에 어떤 환경이었을지 추리해 봐요.`;
+      return `${name} 화석을 보고 알아낼 수 있는 것에는 무엇이 있을지 생각해 봐요.`;
+    }
+    if (creature.isPast) return "우리 주변의 멸종위기 생물을 지키기 위해 내가 할 수 있는 일은 무엇일까요?";
+    if (role === "producer") return `${josa(name, "이/가")} 모두 사라진다면, ${josa(name, "을/를")} 먹던 소비자에게는 어떤 일이 생길까요?`;
+    if (role === "decomposer") return "분해자가 없다면 숲에 쌓이는 낙엽과 죽은 생물은 어떻게 될까요?";
+    return `${josa(name, "이/가")} 먹는 먹이가 사라진다면 ${josa(name, "은/는")} 어떻게 될까요? 먹이 그물을 떠올려 생각해 봐요.`;
+  }
+  function buildLearningNote(creature) {
+    const role = getCreatureRole(creature);
+    const roleInfo = role ? ROLE_INFO[role] : null;
+    const lesson = statusLesson(creature);
+    const units = [];
+    if (roleInfo && !creature.isPast) units.push("4-2 생물과 환경 · 생산자·소비자·분해자");
+    if (creature.category === "균류") units.push("4-1 다양한 생물과 우리 생활 · 균류");
+    if (!units.includes(lesson.unit)) units.push(lesson.unit);
+    return {
+      fictionalNote: isFictional(creature) ? `${josa(creature.name, "은/는")} 게임을 위해 만든 상상 캐릭터예요. 아래 설명은 실제 생물의 특징이에요.` : "",
+      description: creature.description,
+      bioticText: `${josa(creature.name, "은/는")} 살아 있는 생물이므로 생태계의 생물 요소예요. 햇빛, 물, 공기, 흙 같은 비생물 요소의 영향을 받으며 살아가요.`,
+      roleLabel: roleInfo ? roleInfo.label : "",
+      roleText: roleInfo ? roleInfo.text : "",
+      foodChain: creature.foodChain,
+      habitat: creature.habitat,
+      status: creature.endangered,
+      lesson,
+      units,
+      think: thinkQuestion(creature, role),
+      sources: creature.sources || []
+    };
+  }
+  function el(tag, className, text) {
+    const node = document.createElement(tag);
+    if (className) node.className = className;
+    if (text !== void 0) node.textContent = text;
+    return node;
+  }
+  function row(label, value) {
+    const wrap = el("div", "learn-row");
+    wrap.append(el("span", "learn-row-label", label), el("span", "learn-row-value", value));
+    return wrap;
+  }
+  function renderLearningNote(container, creature, { compact = false } = {}) {
+    if (!container) return;
+    const note = buildLearningNote(creature);
+    container.innerHTML = "";
+    if (note.fictionalNote) container.appendChild(el("div", "learn-fiction", note.fictionalNote));
+    if (!compact) {
+      container.appendChild(el("p", "learn-desc", note.description));
+      const facts = el("div", "learn-facts");
+      facts.appendChild(row("🧬 생물 요소", note.bioticText));
+      if (note.roleLabel) facts.appendChild(row(note.roleLabel, note.roleText));
+      if (note.foodChain) facts.appendChild(row("🕸️ 먹이 관계", note.foodChain));
+      if (note.habitat) facts.appendChild(row("📍 사는 곳", note.habitat));
+      if (note.status) facts.appendChild(row("🏷️ 보호 상태", note.status));
+      container.appendChild(facts);
+    }
+    const lesson = el("div", "learn-lesson");
+    lesson.append(el("div", "learn-lesson-title", note.lesson.title), el("div", "learn-lesson-text", note.lesson.text));
+    container.appendChild(lesson);
+    const think = el("div", "learn-think");
+    think.append(el("span", "learn-think-label", "🤔 더 생각해 보기"), el("span", "", note.think));
+    container.appendChild(think);
+    const units = el("div", "learn-units");
+    note.units.forEach((u) => units.appendChild(el("span", "learn-unit-chip", `📘 ${u}`)));
+    container.appendChild(units);
+    if (!compact && note.sources.length) {
+      const sources = el("div", "learn-sources");
+      sources.appendChild(el("span", "learn-sources-label", "🔗 출처"));
+      note.sources.forEach((src) => {
+        const link = el("a", "", src.title);
+        link.href = src.url;
+        link.target = "_blank";
+        link.rel = "noopener noreferrer";
+        sources.appendChild(link);
+      });
+      container.appendChild(sources);
+    }
+  }
+
   // js/minigame.js
   var RECENT_LIMIT = 40;
   function loadEnabledUnits() {
@@ -3836,10 +3988,10 @@
         this.later(() => capsule.remove(), 1100);
       }
     }
-    restartAnimation(el, cls) {
-      el.classList.remove("appear", "hit", "dodge");
-      void el.offsetWidth;
-      el.classList.add(cls);
+    restartAnimation(el2, cls) {
+      el2.classList.remove("appear", "hit", "dodge");
+      void el2.offsetWidth;
+      el2.classList.add(cls);
     }
     later(fn, ms) {
       this.timers.push(setTimeout(fn, ms));
@@ -3868,6 +4020,8 @@
       const pointsText = creature.isInvasive ? `정화 포인트 +${creature.purifyPoints || 50}` : `생물다양성 보존 지수 +${creature.points}`;
       document.getElementById("success-points-gain").innerText = pointsText;
       document.getElementById("success-exp-gain").innerText = `탐사 EXP +${creature.points + bonusExp}`;
+      renderLearningNote(document.getElementById("success-learning-note"), creature);
+      successCard.scrollTop = 0;
       successCard.classList.remove("hidden");
       this.unbindKeys();
       let handled = false;
@@ -3903,7 +4057,7 @@
       this.unbindKeys();
       if (this.state) this.state.finished = true;
       const stage = document.getElementById("capture-stage");
-      if (stage) stage.querySelectorAll(".capture-capsule, .capture-stars").forEach((el) => el.remove());
+      if (stage) stage.querySelectorAll(".capture-capsule, .capture-stars").forEach((el2) => el2.remove());
       const successCard = document.getElementById("encounter-success-card");
       if (successCard) successCard.classList.add("hidden");
       const modal = document.getElementById("encounter-modal");
@@ -4195,6 +4349,7 @@
       document.getElementById("detail-description").innerText = creature.description;
       document.getElementById("detail-first-caught").innerText = dateStr;
       document.getElementById("detail-caught-count").innerText = `${record.count}회 관찰`;
+      renderLearningNote(document.getElementById("detail-learning-note"), creature, { compact: true });
       const sourcesEl = document.getElementById("detail-sources");
       if (sourcesEl) {
         sourcesEl.innerHTML = "";
@@ -4599,22 +4754,22 @@
       }
       sortedSpawns.slice(0, 5).forEach((item) => {
         const isClose = item.dist <= 140;
-        const row = document.createElement("div");
-        row.className = `radar-item ${item.isInvasive ? "invasive" : ""} ${isClose ? "in-range" : ""}`;
-        row.innerHTML = `
+        const row2 = document.createElement("div");
+        row2.className = `radar-item ${item.isInvasive ? "invasive" : ""} ${isClose ? "in-range" : ""}`;
+        row2.innerHTML = `
         <span class="radar-item-icon" style="background:${item.avatarBg}">${item.icon}</span>
         <div class="radar-item-info">
           <div class="radar-item-name">${item.isInvasive ? "⚠️ " + item.name : item.name}</div>
           <div class="radar-item-dist">${item.dist}m (${isClose ? "관찰 가능" : "접근 중"})</div>
         </div>
       `;
-        row.onclick = () => {
+        row2.onclick = () => {
           sound.playClick();
           this.movement.targetPos = { lat: item.lat, lng: item.lng };
           this.map.showWalkTarget(item.lat, item.lng);
           this.showToast(`📍 [${item.name}] 위치로 이동합니다 (${item.dist}m)`);
         };
-        radarListEl.appendChild(row);
+        radarListEl.appendChild(row2);
       });
     }
     onWeatherUpdate(weather) {

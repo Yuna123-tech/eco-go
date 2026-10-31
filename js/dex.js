@@ -6,6 +6,7 @@
 import { STORAGE_KEY } from './constants.js';
 import { CREATURES_DATA, EXPLORER_RANKS, QUESTS_LIST } from './data.js';
 import { sound } from './audio.js';
+import { renderLearningNote } from './learning.js';
 
 export class DexManager {
   constructor(onStateChange) {
@@ -326,6 +327,8 @@ export class DexManager {
     document.getElementById('detail-description').innerText = creature.description;
     document.getElementById('detail-first-caught').innerText = dateStr;
     document.getElementById('detail-caught-count').innerText = `${record.count}회 관찰`;
+
+    renderLearningNote(document.getElementById('detail-learning-note'), creature, { compact: true });
 
     const sourcesEl = document.getElementById('detail-sources');
     if (sourcesEl) {
