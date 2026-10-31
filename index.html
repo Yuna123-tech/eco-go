@@ -549,8 +549,8 @@
         <div class="modal-title-group">
           <span class="modal-title-icon">🧭</span>
           <div>
-            <div class="modal-title-text">동구 에코-고 (Eco-GO) 탐사 가이드</div>
-            <div style="font-size:11px; color:var(--text-muted);">우리 동네 부산 동구 디지털 생태 도감 완벽 정복 가이드</div>
+            <div class="modal-title-text">동구 에코-GO 탐사 가이드</div>
+            <div style="font-size:11px; color:var(--text-muted);">처음이라면 차례대로 읽어 보세요!</div>
           </div>
         </div>
         <button class="modal-close-btn" id="guide-close-btn">✕</button>
@@ -558,161 +558,171 @@
       <div class="modal-body">
         <!-- 가이드 탭 -->
         <div class="guide-nav-tabs">
-          <button class="guide-tab-btn active" data-guide-tab="guide-tab-move">🕹️ 조작 & 이동</button>
-          <button class="guide-tab-btn" data-guide-tab="guide-tab-catch">❓ 문제 풀고 포획</button>
-          <button class="guide-tab-btn" data-guide-tab="guide-tab-biome">🌲 바이옴 & 날씨</button>
-          <button class="guide-tab-btn" data-guide-tab="guide-tab-score">🏆 거점 & 스코어</button>
+          <button class="guide-tab-btn active" data-guide-tab="guide-tab-move">🚀 시작하기</button>
+          <button class="guide-tab-btn" data-guide-tab="guide-tab-catch">❓ 생물 잡기</button>
+          <button class="guide-tab-btn" data-guide-tab="guide-tab-zone">🗺️ 구역 & 레벨</button>
+          <button class="guide-tab-btn" data-guide-tab="guide-tab-biome">🌦️ 날씨 & 특별한 생물</button>
+          <button class="guide-tab-btn" data-guide-tab="guide-tab-score">📖 도감 & 선생님</button>
         </div>
 
-        <!-- 탭 1: 조작 및 이동 -->
+        <!-- 탭 1: 시작하기 -->
         <div class="guide-tab-content" id="guide-tab-move">
           <div class="guide-card">
-            <div class="guide-card-title">1. 가상 아날로그 조이스틱 (모바일 & PC)</div>
+            <div class="guide-card-title">1. 시작 구역 고르기 🚩</div>
             <div class="guide-card-desc">
-              화면 좌측 하단의 <strong>원형 조이스틱 패드</strong>를 마우스로 클릭하여 드래그하거나 손가락으로 터치하여 원하는 방향으로 대원을 자유롭게 이동시킬 수 있습니다.
+              처음에 <strong>초량천</strong>, <strong>수정산·구봉산</strong>, <strong>북항</strong> 중에서 탐사를 시작할 곳을 골라요. 처음에는 고른 구역만 열려 있어요.
             </div>
           </div>
-
           <div class="guide-card">
-            <div class="guide-card-title">2. 키보드 조작 (PC 권장)</div>
+            <div class="guide-card-title">2. 걸어 다니기 🚶</div>
             <div class="guide-card-desc">
-              <div class="kbd-guide-row">
-                <span class="kbd-key">W</span> <span class="kbd-key">A</span> <span class="kbd-key">S</span> <span class="kbd-key">D</span>
-                <span>또는 방향키 <span class="kbd-key">↑</span> <span class="kbd-key">←</span> <span class="kbd-key">↓</span> <span class="kbd-key">→</span> : 상하좌우 걷기</span>
-              </div>
-              <div class="kbd-guide-row" style="margin-top:6px;">
-                <span class="kbd-key">Shift</span> + 방향키 : <strong>전력 질주 (Sprint)</strong>
-              </div>
+              • 왼쪽 아래 <strong>동그란 조이스틱</strong>을 손가락이나 마우스로 끌면 그 방향으로 걸어가요.<br>
+              • 키보드 <span class="kbd-key">W</span><span class="kbd-key">A</span><span class="kbd-key">S</span><span class="kbd-key">D</span> 또는 방향키 <span class="kbd-key">↑</span><span class="kbd-key">←</span><span class="kbd-key">↓</span><span class="kbd-key">→</span>로도 움직일 수 있어요. <span class="kbd-key">Shift</span>를 같이 누르면 뛰어가요.<br>
+              • 지도에서 가고 싶은 곳을 누르면 📍 깃발이 꽂히고 그곳까지 저절로 걸어가요.
             </div>
           </div>
-
           <div class="guide-card">
-            <div class="guide-card-title">3. 지도 클릭 자동 걷기 (Click-to-Walk)</div>
+            <div class="guide-card-title">3. 더 빨리 움직이기 🚲</div>
             <div class="guide-card-desc">
-              지도 위 원하는 장소를 직접 클릭하면 <strong>빨간 목표 깃발(📍)</strong>이 꽂히며, 플레이어 대원이 해당 위치까지 자동으로 걸어갑니다.
+              • 위쪽 <strong>[🚶 도보]</strong> 버튼을 누를 때마다 걷기 → 자전거 → 생태카트로 바뀌어 더 빨라져요.<br>
+              • 아래쪽 <strong>[🚀 거점순간이동]</strong>을 누르면 열린 구역의 거점으로 바로 날아가요. 잠긴 구역(🔒)으로는 갈 수 없어요.
             </div>
           </div>
-
           <div class="guide-card">
-            <div class="guide-card-title">4. 속도 모드 & 거점 순간이동</div>
+            <div class="guide-card-title">4. 내 진짜 위치로 가기 🎯 (GPS)</div>
             <div class="guide-card-desc">
-              • 상단 HUD의 <strong>[🚶 도보]</strong> 버튼 클릭 시 <strong>[🚲 자전거 x2.2]</strong> 또는 <strong>[⚡ 생태카트 x4.5]</strong>로 속도가 변환됩니다.<br>
-              • 하단 메뉴의 <strong>[🚀 거점순간이동]</strong> 버튼으로 초량천, 수정산, 북항 등 주요 바이옴으로 즉시 이동할 수 있습니다.
+              오른쪽 아래 <strong>🎯 버튼</strong>을 누르면 휴대폰이나 컴퓨터의 위치 정보(GPS)로 내가 실제로 있는 곳에 캐릭터가 서요. 내가 동구 밖에 있으면 동구 탐사 지역의 가장 가까운 끝에서 시작해요. 위치 정보 사용을 물어보면 <strong>허용</strong>을 눌러 주세요.
             </div>
           </div>
         </div>
 
-        <!-- 탭 2: 관찰 및 포획 -->
+        <!-- 탭 2: 생물 잡기 -->
         <div class="guide-tab-content hidden" id="guide-tab-catch">
           <div class="guide-card">
-            <div class="guide-card-title">1. 생물 발견 & 거리 좁히기</div>
+            <div class="guide-card-title">1. 생물에게 다가가기 🔍</div>
             <div class="guide-card-desc">
-              대원 주변 200m 내에 야생 동식물이 동적으로 스폰됩니다. 우측 <strong>[주변 생태 레이더]</strong>에 표시된 생물을 확인하고 <strong>140m 이내</strong>로 다가간 후 마커를 클릭하면 관찰 모드가 시작됩니다.
+              내 주변에 생물이 나타나요. 오른쪽 <strong>[주변 생태 레이더]</strong>에서 가까운 생물을 확인하고, <strong>140m 안</strong>까지 다가가서 생물을 누르면 만날 수 있어요.
             </div>
           </div>
-
           <div class="guide-card">
-            <div class="guide-card-title">2. 과학 문제를 풀어 포획하기</div>
+            <div class="guide-card-title">2. 문제를 맞히면 잡혀요 🍃</div>
             <div class="guide-card-desc">
-              생물을 만나면 <strong>과학 문제</strong>가 나와요. 정답을 맞히면 <strong>에코 캡슐</strong>이 날아가 포획 게이지가 차고, 게이지를 모두 채우면 포획 성공! 도감에 등록됩니다. 틀리면 <strong>하트 💚</strong>가 하나 줄고, 하트를 모두 잃으면 생물이 달아나요. 키보드 <span class="kbd-key">1</span>~<span class="kbd-key">4</span>로 답하고 <span class="kbd-key">Enter</span>로 다음 문제로 넘어갈 수 있어요.<br>
-              • 흔한 생물: 1문제 · 희귀 생물: 2문제 · 전설 보스: 3문제 · 한 번도 틀리지 않으면 <strong>🌟 퍼펙트 보너스</strong>!
+              • 생물을 만나면 <strong>과학 문제</strong>가 나와요. 맞히면 <strong>에코 캡슐</strong>이 날아가서 <strong>포획 게이지</strong>가 한 칸 차요.<br>
+              • 게이지가 꽉 차면 잡기 성공! 도감에 등록돼요.<br>
+              • 틀리면 <strong>하트 💚</strong>가 하나 줄어요. 하트가 다 없어지면 생물이 도망가요. 틀려도 해설을 읽으면 다음에 맞힐 수 있어요.<br>
+              • 흔한 생물은 1문제, 귀한 생물은 2문제, 보스는 3문제를 맞혀야 해요. 하나도 안 틀리면 <strong>🌟 퍼펙트 보너스</strong>!
             </div>
           </div>
-
           <div class="guide-card">
-            <div class="guide-card-title">3. 📚 문제 범위 고르기</div>
+            <div class="guide-card-title">3. 여러 가지 문제 📝</div>
             <div class="guide-card-desc">
-              상단의 <strong>[📚 문제 범위]</strong> 버튼에서 초등 과학 4학년 단원(자석의 이용, 물의 상태 변화, 땅의 변화, 다양한 생물과 우리 생활, 밤하늘 관찰, 생물과 환경, 여러 가지 기체, 기후 변화와 우리 생활)과 보너스 단원(화석과 옛날 생물)을 골라 수업 차시에 맞게 쓸 수 있어요.
+              • <strong>📝 객관식</strong>: 알맞은 답 하나 고르기<br>
+              • <strong>⭕ OX</strong>: 맞는 말인지 틀린 말인지 고르기<br>
+              • <strong>✏️ 빈칸 채우기</strong>: 문장의 빈칸에 들어갈 말 고르기<br>
+              • <strong>🔢 순서 맞추기</strong>: 차례대로 눌러서 순서 만들기 (예: 먹이 사슬, 행성 순서)<br>
+              • <strong>✅ 모두 고르기</strong>: 정답을 모두 골라 [확인] 누르기<br>
+              • <strong>🖼️ 그림 보고 맞히기</strong>: 그림 속 생물의 이름 맞히기<br>
+              키보드 숫자 키로 답을 고르고 <span class="kbd-key">Enter</span>로 확인하거나 다음 문제로 넘어가요.
             </div>
           </div>
-
           <div class="guide-card">
-            <div class="guide-card-title">4. ⏳ 시간의 틈: 옛날 생물</div>
+            <div class="guide-card-title">4. 생태 탐구 노트 📚</div>
             <div class="guide-card-desc">
-              가끔 <strong>시간의 틈</strong>이 열려 옛날 생물이 나타나요! 화석으로 남은 <strong>삼엽충·암모나이트·메갈로돈·털매머드</strong>, 우리나라 공룡 <strong>부경고사우루스·코리아케라톱스</strong>, 익룡 발자국 <strong>해남이크누스</strong>, 사람 때문에 사라진 <strong>한국호랑이·한국표범·독도 강치</strong>, 다시 돌아오고 있는 <strong>따오기</strong>를 만나 보세요.
-            </div>
-          </div>
-
-          <div class="guide-card highlight-invasive">
-            <div class="guide-card-title">5. 생태계 교란종 정화</div>
-            <div class="guide-card-desc">
-              외래 교란종(뉴트리아, 붉은귀거북, 가시박 등)을 만나면 문제를 맞혀 <strong>정화 캡슐</strong>로 포획하고 정화 포인트를 얻어요. 교란종이 왜 토종 생태계를 위협하는지도 함께 배워요.
-            </div>
-          </div>
-
-          <div class="guide-card highlight-invasive">
-            <div class="guide-card-title">6. 전설의 보스 👑</div>
-            <div class="guide-card-desc">
-              동구의 <strong>3마리 보스 생물</strong>이 특정 거점에 출현합니다! 북항 친수공원의 흑상어 <strong>부캉이</strong> 🦈, 수정산의 멧돼지 대장 <strong>수정이</strong> 🐗, 초량천의 왕왜가리 <strong>초량이</strong> 🦅는 <strong>3문제</strong>를 맞혀야 포획할 수 있어요. 하트를 모두 잃어도 보스는 그 자리에 남아 있으니 설명을 읽고 다시 도전하세요! 포획하면 👑 <strong>전설 보스 보상(+100 EXP)</strong>을 받아요.
+              생물을 잡으면 그 생물이 <strong>생산자·소비자·분해자</strong> 중 무엇인지, 무엇을 먹는지, 어디에 사는지, 왜 보호해야 하는지 알려 주는 탐구 노트가 나와요. <strong>🤔 더 생각해 보기</strong> 질문도 친구와 함께 이야기해 보세요.
             </div>
           </div>
         </div>
 
-        <!-- 탭 3: 바이옴 및 날씨 -->
+        <!-- 탭 3: 구역과 레벨 -->
+        <div class="guide-tab-content hidden" id="guide-tab-zone">
+          <div class="guide-card">
+            <div class="guide-card-title">1. 잠긴 구역 🔒</div>
+            <div class="guide-card-desc">
+              지도에서 <strong>회색에 자물쇠</strong>가 있는 곳은 아직 잠긴 구역이에요. 잠긴 구역에서는 생물이 나오지 않고, 거점도 쓸 수 없어요.
+            </div>
+          </div>
+          <div class="guide-card">
+            <div class="guide-card-title">2. 새 구역 여는 방법 🔓</div>
+            <div class="guide-card-desc">
+              열린 구역에서 <strong>생물 4종</strong>을 도감에 등록하고 <strong>탐험가 레벨</strong>을 올리면 바로 옆의 <strong>이웃 구역</strong>이 열려요.<br>
+              • 두 번째 구역: Lv.3 필요 · 세 번째 구역: Lv.5 필요<br>
+              • 초량천은 숲(수정산·구봉산)과 바다(북항) 사이에 있어서 두 구역과 모두 이어져 있어요.
+            </div>
+          </div>
+          <div class="guide-card">
+            <div class="guide-card-title">3. 구역 지도 보기 🗺️</div>
+            <div class="guide-card-desc">
+              오른쪽 위의 <strong>구역 이름 배지</strong>(예: 💧 초량천 3/11종)를 누르면 구역마다 몇 종을 모았는지, 잠긴 구역은 어떻게 여는지 볼 수 있어요.
+            </div>
+          </div>
+          <div class="guide-card">
+            <div class="guide-card-title">4. 레벨 올리기 ⭐</div>
+            <div class="guide-card-desc">
+              생물을 잡거나, 거점을 방문하거나, <strong>[🏆 생태퀘스트]</strong>를 완료하면 EXP(경험치)를 받아요. EXP가 쌓이면 <strong>새싹 탐사원(Lv.1)</strong>부터 <strong>위대한 생태학자(Lv.10)</strong>까지 레벨이 올라가요.
+            </div>
+          </div>
+        </div>
+
+        <!-- 탭 4: 날씨와 특별한 생물 -->
         <div class="guide-tab-content hidden" id="guide-tab-biome">
-          <div class="guide-card">
-            <div class="guide-card-title">🌲 1. 마운틴 바이옴 (구봉산·수정산 자락)</div>
-            <div class="guide-card-desc">
-              • 주요 서식 생물: <strong>멧돼지, 고라니, 붉은배새매(멸종위기 II급), 박새, 쇠딱따구리, 다람쥐, 상수리나무</strong><br>
-              • 숲의 먹이사슬을 유지하는 대형 포유류와 야생 조류의 안식처입니다.
-            </div>
-          </div>
-
-          <div class="guide-card">
-            <div class="guide-card-title">💧 2. 스트림 바이옴 (초량천 & 도심 통학로)</div>
-            <div class="guide-card-desc">
-              • 주요 서식 생물: <strong>왜가리, 버들치(1급수 지표어종), 피라미, 청개구리, 흰목물떼새(멸종위기 II급)</strong><br>
-              • 복원된 자연형 하천으로 맑은 물과 수생식물이 공존하는 도심 생태축입니다.
-            </div>
-          </div>
-
-          <div class="guide-card">
-            <div class="guide-card-title">🌊 3. 하버 바이옴 (북항 친수공원 연안)</div>
-            <div class="guide-card-desc">
-              • 주요 서식 생물: <strong>괭이갈매기, 숭어, 민물가마우지, 붉은발말똥게(멸종위기 II급), 퉁퉁마디(함초), 청둥오리</strong><br>
-              • 바닷물과 하천이 만나는 기수역 및 갯벌 염생식물 군락지입니다.
-            </div>
-          </div>
-
           <div class="guide-card highlight-weather">
-            <div class="guide-card-title">🌧️ 4. 날씨별 특수 스폰 룰</div>
+            <div class="guide-card-title">1. 날씨에 따라 나오는 생물이 달라요 🌧️</div>
             <div class="guide-card-desc">
-              • <strong>비(Rain)</strong>: 청개구리 및 버섯류 스폰 확률 <strong>300% 폭증</strong>!<br>
-              • <strong>폭염(25°C 이상)</strong>: 참매미, 호랑나비 등 곤충류 활발 출현<br>
-              • <strong>겨울/혹한</strong>: 청둥오리 등 겨울 철새 위주 출현<br>
-              • 상단 <strong>[🌦️ 날씨실험실]</strong>을 열어 원하는 기상 상태를 즉시 시뮬레이션할 수 있습니다.
+              실제 동구 날씨를 불러와서 날씨에 맞는 생물이 더 자주 나와요. 비생물 요소(날씨)가 생물에게 영향을 주는 것을 직접 느껴 보세요!<br>
+              • <strong>비</strong>: 청개구리, 버들치, 노루궁뎅이버섯 등<br>
+              • <strong>더운 날</strong>: 참매미, 호랑나비 등<br>
+              • <strong>추운 날</strong>: 청둥오리 등<br>
+              • <strong>밤</strong>: 멧돼지, 붉은발말똥게 등<br>
+              아래쪽 <strong>[🌦️ 날씨실험실]</strong>에서 날씨를 바꿔 볼 수도 있어요.
+            </div>
+          </div>
+          <div class="guide-card">
+            <div class="guide-card-title">2. ⏳ 시간의 틈: 옛날 생물</div>
+            <div class="guide-card-desc">
+              가끔 <strong>시간의 틈</strong>이 열려서 옛날 생물이 나타나요. 화석으로 남은 <strong>삼엽충·암모나이트·메갈로돈·털매머드</strong>, 우리나라 공룡 <strong>부경고사우루스·코리아케라톱스</strong>, 익룡 발자국 <strong>해남이크누스</strong>, 사람 때문에 사라진 <strong>한국호랑이·한국표범·독도 강치</strong>, 다시 돌아오고 있는 <strong>따오기</strong>를 만나 보세요.
+            </div>
+          </div>
+          <div class="guide-card highlight-invasive">
+            <div class="guide-card-title">3. ⚠️ 생태계 교란 생물</div>
+            <div class="guide-card-desc">
+              뉴트리아, 붉은귀거북, 가시박처럼 다른 나라에서 들어와 우리 생태계를 어지럽히는 생물도 나와요. 문제를 맞혀 <strong>정화 캡슐</strong>로 잡으면 <strong>🛡️ 정화 포인트</strong>를 받아요.
+            </div>
+          </div>
+          <div class="guide-card highlight-invasive">
+            <div class="guide-card-title">4. 👑 보스 생물</div>
+            <div class="guide-card-desc">
+              열린 구역의 거점 근처에 보스가 나타나요. <strong>부캉이</strong> 🦈는 2026년 가을 북항에 실제로 나타났던 흑상어이고, <strong>수정이</strong> 🐗와 <strong>초량이</strong> 🦅는 게임 속 상상 캐릭터예요. 보스는 문제 3개를 맞혀야 잡을 수 있고, 도망가지 않으니 다시 도전할 수 있어요.
             </div>
           </div>
         </div>
 
-        <!-- 탭 4: 거점 및 스코어 -->
+        <!-- 탭 5: 도감과 선생님 기능 -->
         <div class="guide-tab-content hidden" id="guide-tab-score">
           <div class="guide-card">
-            <div class="guide-card-title">🏞️ 1. 동구 7대 생태 거점 (Eco-Stop)</div>
+            <div class="guide-card-title">1. 📖 생태 도감</div>
             <div class="guide-card-desc">
-              수정산체육공원, 초량천 친수공간, 북항 친수공원, 168계단 등 지도 위의 입체 핀에 <strong>60m 이내로 접근</strong>하면 마커가 발광합니다. 클릭하여 <strong>3D 탐사 디스크</strong>를 돌리면 대량의 EXP와 동구 생태 상식 카드를 얻을 수 있습니다.
+              아래 가운데 <strong>[📖 도감]</strong> 버튼을 누르면 모은 생물을 볼 수 있어요(모두 41종). 카드를 누르면 생물 설명, 사는 곳, 배움 포인트와 함께 정보를 확인한 <strong>🔗 출처</strong>도 볼 수 있어요.
             </div>
           </div>
-
           <div class="guide-card">
-            <div class="guide-card-title">⚖️ 2. 두 가지 생태 스코어</div>
+            <div class="guide-card-title">2. 🏞️ 생태 거점</div>
             <div class="guide-card-desc">
-              • <strong>🌿 생물다양성 보존 지수</strong>: 토종 보호종 및 멸종위기종 관찰 성공 시 상승<br>
-              • <strong>🛡️ 정화 포인트</strong>: 생태계를 파괴하는 외래 교란종 포획 및 방제 시 획득
+              지도 위 거점(168계단, 북항 친수공원 등)에 <strong>65m 안</strong>으로 다가가 누르면 탐사 디스크를 돌려 EXP와 그 장소에 대한 정보를 얻어요.
             </div>
           </div>
-
           <div class="guide-card">
-            <div class="guide-card-title">🎖️ 3. 탐사자 등급 & 퀘스트</div>
+            <div class="guide-card-title">3. 두 가지 점수</div>
             <div class="guide-card-desc">
-              EXP를 모아 <strong>새싹 탐사원(Lv.1)</strong>부터 <strong>동구 에코 마스터(Lv.10)</strong>까지 승급하세요! 하단의 <strong>[🏆 생태퀘스트]</strong>를 완료하면 보너스 EXP와 명예 칭호가 주어집니다.
+              • <strong>🌿 보존 점수</strong>: 우리 생물을 도감에 등록하면 올라가요.<br>
+              • <strong>🛡️ 정화 점수</strong>: 생태계 교란 생물을 잡으면 올라가요.
             </div>
           </div>
-
           <div class="guide-card">
-            <div class="guide-card-title">📖 4. 디지털 생태 도감 열람</div>
+            <div class="guide-card-title">4. 👩‍🏫 선생님 기능</div>
             <div class="guide-card-desc">
-              하단 중앙의 대형 <strong>[📖 도감]</strong> 버튼을 누르면 27종의 수집 현황을 볼 수 있습니다. 수집한 카드를 클릭하면 학명, 서식지, 먹이사슬 위치가 담긴 <strong>생태 연구 리포트</strong>를 확인할 수 있습니다.
+              • 위쪽 <strong>[📚 문제 범위]</strong>에서 수업하는 단원만 골라 문제를 낼 수 있어요. (4학년 과학 8개 단원 + 화석과 옛날 생물)<br>
+              • 도감 아래 <strong>[✨ 데모 전체 언락]</strong>은 수업 시연용으로 모든 생물과 구역을 한 번에 열어요. <strong>[🔄 데이터 초기화]</strong>는 기록을 지우고 시작 구역부터 다시 고르게 해요.<br>
+              • 기록은 이 기기의 브라우저에만 저장돼요.
             </div>
           </div>
         </div>

@@ -5595,7 +5595,7 @@
       const speedToggleBtn = document.getElementById("speed-toggle-btn");
       if (speedToggleBtn) {
         const modes = ["walk", "bike", "cart"];
-        const labels = ["🚶 도보 (x1.0)", "🚲 자전거 (x2.2)", "⚡ 생태카트 (x4.5)"];
+        const labels = ["🚶 도보 (x1.0)", "🚲 자전거 (x2.4)", "⚡ 생태카트 (x5.1)"];
         let idx = 0;
         speedToggleBtn.onclick = () => {
           sound.playClick();
