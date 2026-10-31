@@ -1,12 +1,11 @@
 /**
- * 동구 에코-고 (Dong-gu Eco-GO) 디지털 생태 도감 및 저장 시스템
- * localStorage 영구 저장, 생태 리포트 팝업, 탐사자 칭호 및 퀘스트 관리
+ * 동구 에코-GO - dex.js
+ * 생태 도감 매니저
  */
 
+import { STORAGE_KEY } from './constants.js';
 import { CREATURES_DATA, EXPLORER_RANKS, QUESTS_LIST } from './data.js';
 import { sound } from './audio.js';
-
-const STORAGE_KEY = 'donggu_eco_go_data_v1';
 
 export class DexManager {
   constructor(onStateChange) {
@@ -16,16 +15,16 @@ export class DexManager {
     this.selectedCreature = null;
   }
 
-  // 기본 상태 초기화
   getDefaultState() {
     return {
-      discovered: {}, // id -> { count: 1, firstCaught: timestamp, bestRating: 'EXCELLENT' }
+      discovered: {},
       biodiversityIndex: 0,
       purifyPoints: 0,
       exp: 0,
-      visitedStops: {}, // stopId -> count
-      completedQuests: {}, // questId -> true
-      activeQuestProgress: {}
+      visitedStops: {},
+      completedQuests: {},
+      activeQuestProgress: {},
+      quizStats: { correct: 0, total: 0 }
     };
   }
 
@@ -50,7 +49,6 @@ export class DexManager {
     }
   }
 
-  // 생물 포획 기록
   recordCapture(creature, bonusExp = 0) {
     const id = creature.id;
     const now = new Date().toISOString();
@@ -67,7 +65,6 @@ export class DexManager {
       this.state.discovered[id].lastCaught = now;
     }
 
-    // 점수 가산
     if (creature.isInvasive) {
       this.state.purifyPoints += (creature.purifyPoints || 50);
     } else {
@@ -77,44 +74,61 @@ export class DexManager {
     const expGain = (creature.points || 20) + bonusExp;
     this.state.exp += expGain;
 
-    // 퀘스트 진행도 갱신
     this.checkQuestsOnCatch(creature);
-
     this.saveState();
   }
 
-  // 에코스톱 스핀 기록
+  recordAnswer(isCorrect) {
+    if (!this.state.quizStats) this.state.quizStats = { correct: 0, total: 0 };
+    this.state.quizStats.total += 1;
+    if (isCorrect) this.state.quizStats.correct += 1;
+    this.checkQuestsOnAnswer();
+    this.saveState();
+  }
+
+  checkQuestsOnAnswer() {
+    const correct = this.state.quizStats.correct;
+    QUESTS_LIST.forEach(q => {
+      if (this.state.completedQuests[q.id]) return;
+      if (q.targetType === 'quiz_correct' && correct >= q.targetValue) {
+        this.state.completedQuests[q.id] = true;
+        this.state.exp += q.rewardExp;
+        this.showQuestToast(q);
+      }
+    });
+  }
+
   recordStopSpin(stopId, rewards) {
     this.state.visitedStops[stopId] = (this.state.visitedStops[stopId] || 0) + 1;
     this.state.exp += (rewards.exp || 50);
-
     this.checkQuestsOnSpin();
     this.saveState();
   }
 
-  // 퀘스트 체크
   checkQuestsOnCatch(creature) {
     const totalCaught = Object.keys(this.state.discovered).length;
     let purifyCount = 0;
     let mountainCount = 0;
     let endangeredCount = 0;
+    let pastCount = 0;
 
     CREATURES_DATA.forEach(c => {
       if (this.state.discovered[c.id]) {
         if (c.isInvasive) purifyCount += this.state.discovered[c.id].count;
-        if (c.biome === 'mountain') mountainCount += 1;
-        if (c.endangered && c.endangered.includes('II급')) endangeredCount += 1;
+        if (c.biome === 'mountain' && !c.isPast) mountainCount += 1;
+        if (c.isPast) pastCount += 1;
+        if (!c.isPast && c.endangered && c.endangered.includes('II급')) endangeredCount += 1;
       }
     });
 
     QUESTS_LIST.forEach(q => {
       if (this.state.completedQuests[q.id]) return;
-
       let complete = false;
       if (q.targetType === 'catch_count' && totalCaught >= q.targetValue) complete = true;
       if (q.targetType === 'purify_count' && purifyCount >= q.targetValue) complete = true;
       if (q.targetType === 'biome_count' && q.targetBiome === 'mountain' && mountainCount >= q.targetValue) complete = true;
       if (q.targetType === 'endangered_count' && endangeredCount >= q.targetValue) complete = true;
+      if (q.targetType === 'past_count' && pastCount >= q.targetValue) complete = true;
       if (q.targetType === 'catch_species' && q.targetSpecies.includes(creature.id)) complete = true;
 
       if (complete) {
@@ -158,7 +172,6 @@ export class DexManager {
     }, 3500);
   }
 
-  // 플레이어 랭크 및 레벨 계산
   getCurrentRank() {
     const exp = this.state.exp;
     let current = EXPLORER_RANKS[0];
@@ -177,15 +190,9 @@ export class DexManager {
       ? Math.min(100, Math.round(((exp - currentLevelExp) / (nextLevelExp - currentLevelExp)) * 100))
       : 100;
 
-    return {
-      current,
-      next,
-      exp,
-      progressPercent
-    };
+    return { current, next, exp, progressPercent };
   }
 
-  // 도감 모달 열기 & 필터 렌더링
   openDexModal(highlightId = null) {
     sound.playClick();
     const modal = document.getElementById('dex-modal');
@@ -223,18 +230,15 @@ export class DexManager {
     });
   }
 
-  // 도감 그리드 렌더링
   renderDexGrid(highlightId = null) {
     const container = document.getElementById('dex-grid-container');
     if (!container) return;
-
     container.innerHTML = '';
 
     const discoveredMap = this.state.discovered;
     const totalSpecies = CREATURES_DATA.length;
     const caughtSpeciesCount = Object.keys(discoveredMap).length;
 
-    // 진행률 표시
     const progressBar = document.getElementById('dex-completion-bar');
     const progressText = document.getElementById('dex-completion-text');
     const percent = Math.round((caughtSpeciesCount / totalSpecies) * 100);
@@ -242,12 +246,12 @@ export class DexManager {
     if (progressBar) progressBar.style.width = `${percent}%`;
     if (progressText) progressText.innerText = `${caughtSpeciesCount} / ${totalSpecies}종 수집 (${percent}%)`;
 
-    // 필터링
     const filtered = CREATURES_DATA.filter(c => {
       if (this.activeFilter === 'all') return true;
-      if (this.activeFilter === 'mountain') return c.biome === 'mountain';
-      if (this.activeFilter === 'stream') return c.biome === 'stream';
-      if (this.activeFilter === 'harbor') return c.biome === 'harbor';
+      if (this.activeFilter === 'mountain') return c.biome === 'mountain' && !c.isPast;
+      if (this.activeFilter === 'stream') return c.biome === 'stream' && !c.isPast;
+      if (this.activeFilter === 'harbor') return c.biome === 'harbor' && !c.isPast;
+      if (this.activeFilter === 'past') return !!c.isPast;
       if (this.activeFilter === 'disturb') return c.isInvasive;
       if (this.activeFilter === 'discovered') return !!discoveredMap[c.id];
       if (this.activeFilter === 'undiscovered') return !discoveredMap[c.id];
@@ -258,7 +262,6 @@ export class DexManager {
       const isCaught = !!discoveredMap[creature.id];
       const count = isCaught ? discoveredMap[creature.id].count : 0;
       const isHighlight = highlightId && creature.id === highlightId;
-
       const card = document.createElement('div');
       card.className = `dex-card ${isCaught ? 'caught' : 'locked'} ${creature.isInvasive ? 'card-invasive' : ''} ${isHighlight ? 'newly-registered' : ''}`;
       if (isHighlight) {
@@ -288,7 +291,6 @@ export class DexManager {
           <div class="dex-card-hint">힌트: ${creature.biome.toUpperCase()} 바이옴</div>
         `;
       }
-
       container.appendChild(card);
     });
 
@@ -302,12 +304,10 @@ export class DexManager {
     }
   }
 
-  // 생물 상세 연구 리포트 모달 열기
   openCreatureDetail(creature) {
     sound.playClick();
     const modal = document.getElementById('creature-detail-modal');
     if (!modal) return;
-
     this.selectedCreature = creature;
     const record = this.state.discovered[creature.id] || { count: 1, firstCaught: new Date().toISOString() };
     const dateStr = new Date(record.firstCaught).toLocaleDateString('ko-KR', {
@@ -343,7 +343,6 @@ export class DexManager {
     }
   }
 
-  // 교사용 / 심사용: 모든 도감 데이터 일괄 해제
   unlockAllForDemo() {
     CREATURES_DATA.forEach(c => {
       this.state.discovered[c.id] = {
@@ -359,7 +358,6 @@ export class DexManager {
     this.renderDexGrid();
   }
 
-  // 데이터 초기화
   resetAllData() {
     this.state = this.getDefaultState();
     this.saveState();

@@ -1,0 +1,14 @@
+{
+  "name": "eco-go",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "동구 에코-GO - 지도 기반 생태 탐험 웹앱",
+  "scripts": {
+    "build": "esbuild js/app.js --bundle --format=iife --target=es2018 --charset=utf8 --legal-comments=none --banner:js=\"/* 동구 에코-GO 번들 - js/*.js 원본을 'npm run build'로 생성합니다. 이 파일을 직접 고치지 마세요. */\" --outfile=js/bundle.js",
+    "watch": "npm run build -- --watch"
+  },
+  "devDependencies": {
+    "esbuild": "^0.25.0"
+  }
+}

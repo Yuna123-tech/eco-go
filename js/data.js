@@ -1,16 +1,14 @@
 /**
- * 동구 에코-고 (Dong-gu Eco-GO) 생태 데이터베이스
- * 부산광역시 동구 실제 지형(구봉산·수정산 산림, 초량천 도심 하천, 북항 친수공원 연안) 기반
+ * 동구 에코-GO - data.js
+ * 부산 동구 생태 데이터베이스
  */
 
-// 부산 동구 중심 좌표 (동구청/초량 일대)
 export const DONGGU_CENTER = {
   lat: 35.1293,
   lng: 129.0385,
-  zoom: 15
+  zoom: 16
 };
 
-// 동구 내 3대 바이옴(서식 구역) 정의
 export const BIOMES = {
   mountain: {
     id: 'mountain',
@@ -22,7 +20,7 @@ export const BIOMES = {
     icon: '🌲',
     description: '수정산과 구봉산 자락의 울창한 숲과 편백림, 계곡부로 다양한 포유류와 조류가 서식합니다.',
     center: { lat: 35.1380, lng: 129.0280 },
-    radius: 750 // meters
+    radius: 750
   },
   stream: {
     id: 'stream',
@@ -50,7 +48,6 @@ export const BIOMES = {
   }
 };
 
-// 부산 동구 주요 생태 거점 (Eco-Stop / 포켓스톱)
 export const ECO_STOPS = [
   {
     id: 'stop_sujeong_park',
@@ -138,10 +135,8 @@ export const ECO_STOPS = [
   }
 ];
 
-// 동구 생태 생물 데이터 (총 30종)
-// 국립생태원, 국립생물자원관 실제 조사 데이터 규격 참고
 export const CREATURES_DATA = [
-  // ==================== 1. 산림 바이옴 (구봉산·수정산) ====================
+  // 1. 산림 바이옴
   {
     id: 'creature_boar',
     name: '멧돼지',
@@ -317,7 +312,7 @@ export const CREATURES_DATA = [
     points: 60,
     habitat: '구봉산 음습한 활엽수 고목',
     foodChain: '분해자 (죽은 목재를 흙으로 환원)',
-    weatherBoost: ['rain'], // 비 올 때 스폰 300%
+    weatherBoost: ['rain'],
     description: '하얗고 부드러운 털이 촘촘히 나 있어 마치 뛰어가던 노루의 엉덩이 털처럼 생긴 독특한 버섯입니다. 비가 많이 온 뒤 습도가 높은 고목에 자라납니다.',
     quiz: {
       question: '버섯과 같은 균류(Fungi)가 자연 생태계에서 맡고 있는 가장 중요한 역할은 무엇일까요?',
@@ -327,7 +322,7 @@ export const CREATURES_DATA = [
     }
   },
 
-  // ==================== 2. 하천·도심 바이옴 (초량천 & 도심) ====================
+  // 2. 하천·도심 바이옴
   {
     id: 'creature_grey_heron',
     name: '왜가리',
@@ -388,7 +383,7 @@ export const CREATURES_DATA = [
     points: 25,
     habitat: '초량천 물가 풀숲, 습지',
     foodChain: '2차 소비자 (모기, 파리, 거미 포식)',
-    weatherBoost: ['rain'], // 비 올 때 300%
+    weatherBoost: ['rain'],
     description: '비가 오기 전 기압이 낮아지고 습도가 높아지면 목의 울음주머니를 크게 부풀려 특유의 "개굴개굴" 소리를 냅니다. 발가락 끝에 둥근 흡반이 있어 벽도 잘 탑니다.',
     quiz: {
       question: '청개구리가 비가 내리기 직전에 유독 시끄럽게 우는 생물학적 이유는 무엇일까요?',
@@ -434,7 +429,7 @@ export const CREATURES_DATA = [
     points: 20,
     habitat: '초량 이바구길 플라타너스, 벚나무',
     foodChain: '1차 소비자 (나무 수액 흡즙)',
-    weatherBoost: ['hot'], // 25도 이상
+    weatherBoost: ['hot'],
     description: '"맴-맴-맴-쓰르르" 하고 청량하게 우는 여름의 대표 곤충입니다. 땅속에서 애벌레로 약 3~5년을 살다가 여름철 지상으로 나와 단 몇 주 동안 번식을 위해 웁니다.',
     quiz: {
       question: '매미 소리 중에서 소리를 내어 우는 매미는 누구일까요?',
@@ -513,7 +508,7 @@ export const CREATURES_DATA = [
     }
   },
 
-  // ==================== 3. 연안·하버 바이옴 (북항 친수공원) ====================
+  // 3. 연안·하버 바이옴
   {
     id: 'creature_gull',
     name: '괭이갈매기',
@@ -643,7 +638,7 @@ export const CREATURES_DATA = [
     points: 25,
     habitat: '북항 친수수로 잔잔한 수면',
     foodChain: '1차/2차 소비자 (수초, 수생곤충)',
-    weatherBoost: ['cold'], // 겨울철
+    weatherBoost: ['cold'],
     description: '수컷의 머리가 광택 있는 짙은 에메랄드 녹색을 띠는 대표적인 겨울 철새입니다. 북항 친수공원 잔잔한 물가에서 물구나무서기를 하듯 꽁지를 치켜들고 물속 수초를 먹습니다.',
     quiz: {
       question: '청둥오리가 물속에 머리를 처박고 꽁지만 수면 위로 내놓는 독특한 잠수법을 무엇이라 할까요?',
@@ -653,13 +648,12 @@ export const CREATURES_DATA = [
     }
   },
 
-  // ==================== 4. 생태계 교란종 / 외래종 (전 지역 스폰) ====================
-  // 포획 시 "정화 포인트" 획득!
+  // 4. 생태계 교란종 / 외래종
   {
     id: 'creature_nutria',
     name: '뉴트리아',
     sciName: 'Myocastor coypus',
-    biome: 'stream', // 주로 습지/하천에 출현
+    biome: 'stream',
     category: '포유류',
     rarity: 'disturb',
     endangered: '생태계교란 야생생물 (환경부 지정)',
@@ -775,6 +769,293 @@ export const CREATURES_DATA = [
       explanation: '선녀벌레가 배출한 배설물(감로)에 곰팡이가 번식하면서 잎 표면이 검은 그을음처럼 덮여 광합성을 방해하는 그을음병이 생깁니다.'
     }
   },
+  // ===== 4. 시간의 틈: 옛날 생물 (멸종 · 지역에서 사라진 생물 · 화석) =====
+  {
+    id: 'creature_past_trilobite',
+    name: '삼엽충',
+    sciName: 'Trilobita',
+    biome: 'harbor',
+    category: '절지동물 (화석)',
+    rarity: 'rare',
+    endangered: '⏳ 멸종 · 화석',
+    isInvasive: false,
+    isPast: true,
+    era: '약 5억 년 전 ~ 2억 5천만 년 전 바다',
+    eraWrongs: ['약 1만 년 전 빙하기 육지', '약 100년 전 우리나라 숲', '지금도 동구 바다에 산다'],
+    icon: '🪲',
+    avatarBg: '#a16207',
+    points: 70,
+    habitat: '아주 오래전 얕은 바다 바닥 (강원도 태백·영월 지층에서 화석 발견)',
+    foodChain: '소비자 (바다 바닥의 작은 생물과 찌꺼기를 먹음)',
+    weatherBoost: [],
+    description: '몸이 세로로 세 부분으로 나뉜 바다 절지동물로, 약 2억 5천만 년 전에 모두 멸종했습니다. 우리나라 강원도 태백과 영월의 지층에서도 화석이 발견됩니다.',
+    quiz: {
+      question: '삼엽충(三葉蟲)이라는 이름이 붙은 까닭은 무엇일까요?',
+      options: ['몸이 세로로 세 부분으로 나뉘어 있어서', '다리가 세 개뿐이어서', '세 번 탈피하고 죽어서'],
+      answerIndex: 0,
+      explanation: '삼엽충은 몸이 가운데와 양옆, 세로로 세 부분(엽)으로 나뉘어 있어서 붙은 이름입니다.'
+    }
+  },
+  {
+    id: 'creature_past_ammonite',
+    name: '암모나이트',
+    sciName: 'Ammonoidea',
+    biome: 'harbor',
+    category: '연체동물 (화석)',
+    rarity: 'rare',
+    endangered: '⏳ 멸종 · 화석',
+    isInvasive: false,
+    isPast: true,
+    era: '공룡이 살던 시대(중생대)의 바다',
+    eraWrongs: ['사람이 농사를 짓기 시작한 뒤', '약 100년 전', '지금도 바다에 많이 산다'],
+    icon: '🐚',
+    avatarBg: '#b45309',
+    points: 70,
+    habitat: '공룡 시대의 넓은 바다',
+    foodChain: '소비자 (작은 바다 동물을 잡아먹음)',
+    weatherBoost: [],
+    description: '나선형으로 말린 껍데기를 가진 바다 동물로, 공룡과 같은 시기(약 6600만 년 전)에 멸종했습니다. 세계 곳곳에서 화석이 발견됩니다.',
+    quiz: {
+      question: '암모나이트와 가장 가까운 친척인 오늘날의 동물은?',
+      options: ['오징어와 문어', '거북', '불가사리'],
+      answerIndex: 0,
+      explanation: '암모나이트는 오징어, 문어, 앵무조개와 같은 두족류 무리에 속합니다. 껍데기 속에 다리가 여러 개 달린 몸이 들어 있었습니다.'
+    }
+  },
+  {
+    id: 'creature_past_pukyongosaurus',
+    name: '부경고사우루스',
+    sciName: 'Pukyongosaurus millenniumi',
+    biome: 'mountain',
+    category: '공룡 · 용각류 (화석)',
+    rarity: 'epic',
+    endangered: '⏳ 멸종 · 한국 공룡',
+    isInvasive: false,
+    isPast: true,
+    era: '약 1억 년도 더 전, 공룡 시대(백악기)',
+    eraWrongs: ['약 1만 년 전 빙하기', '조선 시대', '약 100년 전'],
+    icon: '🦕',
+    avatarBg: '#65a30d',
+    points: 120,
+    habitat: '경상남도 하동에서 뼈 화석 발견',
+    foodChain: '1차 소비자 (긴 목으로 높은 나뭇잎을 먹은 초식 공룡)',
+    weatherBoost: ['hot'],
+    description: '경남 하동에서 발견된 목이 긴 초식 공룡(용각류)입니다. 2000년에 부산의 부경대학교 연구팀이 연구해 이름을 붙였습니다.',
+    quiz: {
+      question: '부경고사우루스의 이름은 어디에서 따왔을까요?',
+      options: ['연구한 부산의 부경대학교', '발견된 나라 브라질', '처음 본 사람의 반려견 이름'],
+      answerIndex: 0,
+      explanation: '부경고사우루스는 화석을 연구한 부산 부경대학교의 이름을 따서 지었습니다. 부산과 인연이 깊은 한국 공룡입니다.'
+    }
+  },
+  {
+    id: 'creature_past_koreaceratops',
+    name: '코리아케라톱스',
+    sciName: 'Koreaceratops hwaseongensis',
+    biome: 'stream',
+    category: '공룡 · 뿔공룡 무리 (화석)',
+    rarity: 'epic',
+    endangered: '⏳ 멸종 · 한국 공룡',
+    isInvasive: false,
+    isPast: true,
+    era: '약 1억 년도 더 전, 공룡 시대(백악기)',
+    eraWrongs: ['약 1만 년 전 빙하기', '고려 시대', '약 50년 전'],
+    icon: '🦖',
+    avatarBg: '#4d7c0f',
+    points: 120,
+    habitat: '경기도 화성의 바닷가 지층에서 화석 발견',
+    foodChain: '1차 소비자 (식물을 먹은 초식 공룡)',
+    weatherBoost: ['hot', 'rain'],
+    description: '경기도 화성에서 발견된 우리나라 최초의 뿔공룡(각룡류) 무리 공룡입니다. 꼬리 위쪽 뼈가 높게 솟아 있어 물에서 헤엄을 쳤을 것이라고 추측하기도 합니다.',
+    quiz: {
+      question: '코리아케라톱스의 학명 "hwaseongensis"에 들어 있는 우리나라 지역은?',
+      options: ['경기도 화성', '부산 동구', '제주도'],
+      answerIndex: 0,
+      explanation: '화석이 경기도 화성에서 발견되어 학명에 "화성"이 들어갔습니다.'
+    }
+  },
+  {
+    id: 'creature_past_haenamichnus',
+    name: '해남이크누스 (익룡)',
+    sciName: 'Haenamichnus uhangriensis',
+    biome: 'stream',
+    category: '익룡 · 발자국 화석',
+    rarity: 'rare',
+    endangered: '⏳ 멸종 · 흔적 화석',
+    isInvasive: false,
+    isPast: true,
+    era: '공룡 시대(백악기)',
+    eraWrongs: ['약 1만 년 전 빙하기', '삼국 시대', '지금도 해남 하늘을 난다'],
+    icon: '🐾',
+    avatarBg: '#0f766e',
+    points: 80,
+    habitat: '전라남도 해남 우항리 호숫가 지층',
+    foodChain: '소비자 (물가에서 작은 동물을 잡아먹었을 것으로 추정)',
+    weatherBoost: ['rain'],
+    description: '전남 해남 우항리에서 발견된 큰 익룡 발자국 화석에 붙인 이름입니다. 뼈가 아닌 발자국도 옛날 생물이 남긴 소중한 화석입니다.',
+    quiz: {
+      question: '해남이크누스는 익룡의 무엇을 보고 이름을 붙였을까요?',
+      options: ['지층에 남은 발자국 화석', '살아 있는 익룡', '익룡이 그린 그림'],
+      answerIndex: 0,
+      explanation: '해남이크누스는 해남 우항리에서 발견된 익룡 발자국 화석에 붙인 이름입니다. 발자국처럼 생물의 흔적이 남은 것도 화석입니다.'
+    }
+  },
+  {
+    id: 'creature_past_megalodon',
+    name: '메갈로돈',
+    sciName: 'Otodus megalodon',
+    biome: 'harbor',
+    category: '연골어류 (화석)',
+    rarity: 'epic',
+    endangered: '⏳ 멸종 · 화석',
+    isInvasive: false,
+    isPast: true,
+    era: '약 2300만 년 전 ~ 360만 년 전 바다',
+    eraWrongs: ['약 5억 년 전, 삼엽충과 같은 시대', '약 100년 전 부산 앞바다', '지금도 북항에 산다'],
+    icon: '🦈',
+    avatarBg: '#1e40af',
+    points: 120,
+    habitat: '따뜻한 옛날 바다 (전 세계에서 이빨 화석 발견)',
+    foodChain: '최상위 소비자 (고래 등 큰 바다 동물을 사냥)',
+    weatherBoost: ['clear'],
+    description: '지금의 백상아리보다 훨씬 컸던 옛날 상어입니다. 뼈가 연골이라 몸 화석은 거의 남지 않고, 손바닥만 한 이빨 화석이 주로 발견됩니다.',
+    quiz: {
+      question: '메갈로돈의 화석이 주로 이빨로만 발견되는 까닭은?',
+      options: ['뼈가 말랑한 연골이라 잘 남지 않아서', '메갈로돈은 이빨만 있는 생물이라서', '사람들이 뼈를 모두 숨겨서'],
+      answerIndex: 0,
+      explanation: '상어 무리는 뼈가 연골이라 쉽게 썩어 사라지지만, 단단한 이빨은 화석으로 잘 남습니다.'
+    }
+  },
+  {
+    id: 'creature_past_mammoth',
+    name: '털매머드',
+    sciName: 'Mammuthus primigenius',
+    biome: 'mountain',
+    category: '포유류 (화석)',
+    rarity: 'epic',
+    endangered: '⏳ 멸종 · 빙하기 생물',
+    isInvasive: false,
+    isPast: true,
+    era: '빙하기 (대부분 약 1만 년 전에 사라짐)',
+    eraWrongs: ['공룡과 같은 시대', '약 5억 년 전 바다', '약 100년 전 우리나라'],
+    icon: '🦣',
+    avatarBg: '#78350f',
+    points: 110,
+    habitat: '빙하기의 춥고 넓은 초원',
+    foodChain: '1차 소비자 (풀과 나뭇가지를 먹은 초식 동물)',
+    weatherBoost: ['cold'],
+    description: '긴 털과 두꺼운 지방층, 휘어진 긴 상아를 가진 빙하기 코끼리 무리입니다. 날씨가 따뜻해지고 사냥이 늘면서 대부분 약 1만 년 전에 사라졌습니다.',
+    quiz: {
+      question: '털매머드의 몸이 길고 두꺼운 털로 덮여 있던 까닭은?',
+      options: ['추운 빙하기 환경에 적응했기 때문', '물속에서 헤엄치기 위해', '하늘을 날기 위해'],
+      answerIndex: 0,
+      explanation: '긴 털과 두꺼운 지방은 추운 빙하기에서 몸의 열을 지키는 데 유리했습니다. 이처럼 환경에 맞는 특징을 갖는 것을 적응이라고 합니다.'
+    }
+  },
+  {
+    id: 'creature_past_tiger',
+    name: '한국호랑이',
+    sciName: 'Panthera tigris altaica',
+    biome: 'mountain',
+    category: '포유류 (지역 절멸)',
+    rarity: 'epic',
+    endangered: '⏳ 남한에서 사라짐 · 멸종위기 I급',
+    isInvasive: false,
+    isPast: true,
+    era: '약 100년 전까지 우리나라 산',
+    eraWrongs: ['공룡 시대', '약 5억 년 전 바다', '빙하기에만 살았다'],
+    icon: '🐅',
+    avatarBg: '#ea580c',
+    points: 110,
+    habitat: '우리나라의 깊은 산과 숲 (지금은 러시아·중국 국경 지역에 일부 생존)',
+    foodChain: '최상위 소비자 (멧돼지, 사슴 등을 사냥)',
+    weatherBoost: ['cold', 'night'],
+    description: '옛날에는 우리나라 산 곳곳에 살았지만 지나친 사냥과 숲의 감소로 남한에서는 1920년대 이후 야생에서 볼 수 없게 되었습니다.',
+    quiz: {
+      question: '최상위 소비자인 호랑이가 숲에서 사라지면 어떤 일이 생길 수 있을까요?',
+      options: ['멧돼지·고라니 같은 초식 동물이 크게 늘어 숲의 균형이 깨진다', '숲의 모든 동물이 함께 사라진다', '아무 변화도 일어나지 않는다'],
+      answerIndex: 0,
+      explanation: '먹이 그물의 위쪽 소비자가 사라지면 그 먹이가 되던 동물이 지나치게 늘어 생태계 평형이 깨질 수 있습니다.'
+    }
+  },
+  {
+    id: 'creature_past_leopard',
+    name: '한국표범',
+    sciName: 'Panthera pardus orientalis',
+    biome: 'mountain',
+    category: '포유류 (지역 절멸)',
+    rarity: 'epic',
+    endangered: '⏳ 남한에서 사라짐 · 멸종위기 I급',
+    isInvasive: false,
+    isPast: true,
+    era: '약 50여 년 전(1970년)까지 우리나라 산',
+    eraWrongs: ['공룡 시대', '빙하기', '약 5억 년 전 바다'],
+    icon: '🐆',
+    avatarBg: '#ca8a04',
+    points: 110,
+    habitat: '바위가 많은 깊은 산 (지금은 러시아 연해주 등에 소수 생존)',
+    foodChain: '최상위 소비자 (노루, 멧돼지 등을 사냥)',
+    weatherBoost: ['night'],
+    description: '1970년 경남 합천 오도산에서 잡힌 것이 남한의 마지막 기록입니다. 지나친 사냥과 서식지 파괴로 우리나라 숲에서 사라졌습니다.',
+    quiz: {
+      question: '한국표범이 남한의 숲에서 사라진 주된 까닭은?',
+      options: ['지나친 사냥과 서식지 파괴', '먹이가 너무 많아서', '날씨가 너무 시원해서'],
+      answerIndex: 0,
+      explanation: '사람의 지나친 사냥과 숲이 줄어든 것이 큰 원인입니다. 지금은 멸종위기 야생생물 I급으로 보호하고 있습니다.'
+    }
+  },
+  {
+    id: 'creature_past_sealion',
+    name: '독도 강치',
+    sciName: 'Zalophus japonicus',
+    biome: 'harbor',
+    category: '포유류 (멸종)',
+    rarity: 'epic',
+    endangered: '⏳ 멸종',
+    isInvasive: false,
+    isPast: true,
+    era: '약 50년 전(1970년대)까지 독도 바다',
+    eraWrongs: ['공룡 시대', '빙하기', '약 5억 년 전'],
+    icon: '🦭',
+    avatarBg: '#475569',
+    points: 110,
+    habitat: '독도와 동해의 바위섬',
+    foodChain: '소비자 (물고기와 오징어를 먹음)',
+    weatherBoost: ['clear', 'wind'],
+    description: '독도에 무리 지어 살던 바다사자입니다. 일제강점기에 가죽과 기름을 얻으려고 마구 잡아들여 수가 크게 줄었고, 1970년대 이후 볼 수 없게 되어 멸종했습니다.',
+    quiz: {
+      question: '독도 강치가 멸종한 가장 큰 까닭은?',
+      options: ['사람의 지나친 사냥', '바닷물이 너무 깨끗해서', '먹이가 너무 많아서'],
+      answerIndex: 0,
+      explanation: '사람이 가죽과 기름을 얻으려고 지나치게 사냥한 것이 가장 큰 원인입니다. 한 번 멸종한 생물은 다시 되살릴 수 없습니다.'
+    }
+  },
+  {
+    id: 'creature_past_crested_ibis',
+    name: '따오기',
+    sciName: 'Nipponia nippon',
+    biome: 'stream',
+    category: '조류 (돌아온 생물)',
+    rarity: 'rare',
+    endangered: '⏳ 복원 중 · 멸종위기 II급',
+    isInvasive: false,
+    isPast: true,
+    era: '1979년 이후 사라졌다가 지금 복원 중',
+    eraWrongs: ['공룡 시대에만 살았다', '빙하기에만 살았다', '한 번도 사라진 적 없다'],
+    icon: '🦩',
+    avatarBg: '#f472b6',
+    points: 90,
+    habitat: '논, 습지, 얕은 물가 (경남 창녕 우포늪)',
+    foodChain: '2차 소비자 (미꾸라지, 개구리, 수서곤충을 먹음)',
+    weatherBoost: ['rain'],
+    description: '동요 "따오기"에 나오는 새입니다. 1979년 이후 우리나라 야생에서 사라졌지만, 중국에서 들여온 따오기를 창녕 우포늪에서 키워 2019년부터 자연으로 돌려보내고 있습니다.',
+    quiz: {
+      question: '따오기가 다시 살아가려면 어떤 환경이 꼭 필요할까요?',
+      options: ['농약이 적고 미꾸라지가 사는 깨끗한 논과 습지', '자동차가 많은 넓은 도로', '나무가 하나도 없는 사막'],
+      answerIndex: 0,
+      explanation: '따오기는 논과 습지에서 미꾸라지 같은 먹이를 찾습니다. 서식지를 깨끗하게 지키는 것이 복원의 핵심입니다.'
+    }
+  },
   {
     id: 'creature_boss_shark',
     name: '부캉이',
@@ -849,7 +1130,6 @@ export const CREATURES_DATA = [
   }
 ];
 
-// 학생 탐사자 등급 칭호
 export const EXPLORER_RANKS = [
   { level: 1, title: '새싹 탐사원', minExp: 0, icon: '🌱' },
   { level: 2, title: '호기심 관찰자', minExp: 100, icon: '🔍' },
@@ -863,7 +1143,6 @@ export const EXPLORER_RANKS = [
   { level: 10, title: '위대한 생태학자', minExp: 3800, icon: '🌟' }
 ];
 
-// 탐사 퀘스트 (도전 과제)
 export const QUESTS_LIST = [
   {
     id: 'quest_first_catch',
@@ -920,5 +1199,23 @@ export const QUESTS_LIST = [
     targetValue: 3,
     rewardExp: 90,
     rewardTitle: '동구 마실꾼'
+  },
+  {
+    id: 'quest_time_traveler',
+    title: '시간 여행 탐사대',
+    description: '시간의 틈에서 나타나는 옛날 생물(공룡, 삼엽충, 독도 강치 등)을 3종 도감에 등록하세요.',
+    targetType: 'past_count',
+    targetValue: 3,
+    rewardExp: 150,
+    rewardTitle: '시간 여행자'
+  },
+  {
+    id: 'quest_science_quiz',
+    title: '과학 퀴즈 챔피언',
+    description: '생물을 만났을 때 나오는 과학 문제를 20문제 맞히세요.',
+    targetType: 'quiz_correct',
+    targetValue: 20,
+    rewardExp: 200,
+    rewardTitle: '꼬마 과학자'
   }
 ];

@@ -1,8 +1,9 @@
 /**
- * 동구 에코-고 (Dong-gu Eco-GO) Leaflet 지도 및 공간 엔진
- * 부산 동구 3대 바이옴, 에코스톱(포켓스톱), 플레이어 아바타, 생물 마커 렌더링
+ * 동구 에코-GO - map.js
+ * Leaflet 지도 및 공간 엔진
  */
 
+import { MAP_LAYER_STORAGE_KEY } from './constants.js';
 import { DONGGU_CENTER, BIOMES, ECO_STOPS } from './data.js';
 
 export class EcoMap {
@@ -10,33 +11,30 @@ export class EcoMap {
     this.mapContainerId = mapContainerId;
     this.onCreatureClick = onCreatureClick;
     this.onEcoStopClick = onEcoStopClick;
-
     this.map = null;
     this.playerMarker = null;
     this.playerRadarCircle = null;
     this.playerPos = { lat: DONGGU_CENTER.lat, lng: DONGGU_CENTER.lng };
-    this.creatureMarkers = new Map(); // id -> leaflet marker
-    this.stopMarkers = new Map();     // id -> leaflet marker
+    this.creatureMarkers = new Map();
+    this.stopMarkers = new Map();
     this.biomeLayers = [];
     this.walkTargetMarker = null;
+    this.lastFollowAt = 0;
   }
 
   init() {
-    // Leaflet 지도 생성
     this.map = L.map(this.mapContainerId, {
       center: [this.playerPos.lat, this.playerPos.lng],
       zoom: 16,
       minZoom: 13,
       maxZoom: 19,
-      zoomControl: false, // 커스텀 위치로 재배치
-      maxBounds: L.latLngBounds([35.095, 129.000], [35.165, 129.075]),
-      maxBoundsViscosity: 1.0
+      zoomControl: false
     });
 
-    // 줌 컨트롤 우상단 추가
     L.control.zoom({ position: 'topright' }).addTo(this.map);
 
-    // 베이스맵 레이어 정의 (무료, API 키 불필요, 워터마크 없음)
+    this.googleApiKey = localStorage.getItem('google_maps_api_key') || '';
+
     this.tileLayers = {
       osm: L.tileLayer('https://tile.openstreetmap.de/{z}/{x}/{y}.png', {
         attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> 기여자 (FOSSGIS 미러) | 부산광역시 동구',
@@ -48,23 +46,24 @@ export class EcoMap {
         subdomains: 'ab'
       }),
       satellite: L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-        attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community',
+        attribution: 'Tiles &copy; Esri, Earthstar Geographics | 부산광역시 동구',
         maxZoom: 19
       })
     };
 
-    // 저장된 지도 스타일 복원 (없으면 기본 레이어)
-    let initialKey = 'osm';
-    try {
-      const savedLayer = localStorage.getItem('donggu_eco_go_map_layer_v1');
-      if (savedLayer && this.tileLayers[savedLayer]) initialKey = savedLayer;
-    } catch (e) {
-      console.warn('지도 스타일 복원 실패:', e);
+    this.setupGoogleLayers(this.googleApiKey);
+
+    const savedLayer = localStorage.getItem(MAP_LAYER_STORAGE_KEY);
+    let initialKey = (this.googleApiKey && this.tileLayers.googleRoad) ? 'googleRoad' : 'osm';
+    if (savedLayer && this.tileLayers[savedLayer]) {
+      const isGoogleLayer = savedLayer.startsWith('google');
+      if (!isGoogleLayer || (this.googleApiKey && this.tileLayers[savedLayer])) {
+        initialKey = savedLayer;
+      }
     }
     this.currentTileLayer = this.tileLayers[initialKey];
     this.currentTileLayer.addTo(this.map);
 
-    // 타일 로딩 누락 방지를 위한 리사이즈 보정
     setTimeout(() => {
       if (this.map) this.map.invalidateSize();
     }, 250);
@@ -73,19 +72,48 @@ export class EcoMap {
       if (this.map) this.map.invalidateSize();
     });
 
-    // 1. 3대 바이옴 구역 렌더링
     this.renderBiomes();
-
-    // 2. 동구 생태 거점 (Eco-Stops) 렌더링
     this.renderEcoStops();
-
-    // 3. 플레이어 아바타 마커 및 레이더 반경 생성
     this.createPlayerAvatar();
 
     return this;
   }
 
-  // 바이옴(서식지) 영역 반투명 서클 및 라벨 추가
+  setupGoogleLayers(apiKey) {
+    this.googleApiKey = apiKey ? apiKey.trim() : '';
+    const keyParam = this.googleApiKey ? `&key=${encodeURIComponent(this.googleApiKey)}` : '';
+    this.tileLayers.googleRoad = L.tileLayer(`https://mt{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}${keyParam}`, {
+      subdomains: '0123',
+      maxZoom: 20,
+      attribution: '&copy; Google Maps | 부산광역시 동구'
+    });
+    this.tileLayers.googleTerrain = L.tileLayer(`https://mt{s}.google.com/vt/lyrs=p&x={x}&y={y}&z={z}${keyParam}`, {
+      subdomains: '0123',
+      maxZoom: 20,
+      attribution: '&copy; Google Maps | 부산광역시 동구'
+    });
+    this.tileLayers.googleSat = L.tileLayer(`https://mt{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}${keyParam}`, {
+      subdomains: '0123',
+      maxZoom: 20,
+      attribution: '&copy; Google Maps | 부산광역시 동구'
+    });
+  }
+
+  setBaseMap(layerKey) {
+    if (!this.tileLayers[layerKey] || !this.map) return;
+    if (this.currentTileLayer) {
+      this.map.removeLayer(this.currentTileLayer);
+    }
+    this.currentTileLayer = this.tileLayers[layerKey];
+    this.currentTileLayer.addTo(this.map);
+    this.currentTileLayer.bringToBack();
+    try {
+      localStorage.setItem(MAP_LAYER_STORAGE_KEY, layerKey);
+    } catch (e) {
+      console.warn('지도 스타일 저장 실패:', e);
+    }
+  }
+
   renderBiomes() {
     Object.values(BIOMES).forEach(biome => {
       const circle = L.circle([biome.center.lat, biome.center.lng], {
@@ -98,7 +126,6 @@ export class EcoMap {
         interactive: false
       }).addTo(this.map);
 
-      // 바이옴 중심 이름표 배지 마커
       const labelIcon = L.divIcon({
         className: 'biome-badge-label',
         html: `
@@ -120,7 +147,6 @@ export class EcoMap {
     });
   }
 
-  // 동구 7대 생태 거점(Eco-Stops) 마커
   renderEcoStops() {
     ECO_STOPS.forEach(stop => {
       const stopIcon = L.divIcon({
@@ -156,9 +182,7 @@ export class EcoMap {
     });
   }
 
-  // 플레이어 아바타 마커 생성
   createPlayerAvatar() {
-    // 200m 탐색 레이더 원형 펄스
     this.playerRadarCircle = L.circle([this.playerPos.lat, this.playerPos.lng], {
       radius: 180,
       color: '#10b981',
@@ -192,22 +216,21 @@ export class EcoMap {
     }).addTo(this.map);
   }
 
-  // 플레이어 위치 업데이트
-    setPlayerPosition(lat, lng, headingAngle = null) {
-      this.playerPos = { lat, lng };
-      if (this.playerMarker) {
-        this.playerMarker.setLatLng([lat, lng]);
+  setPlayerPosition(lat, lng, headingAngle = null) {
+    this.playerPos = { lat, lng };
+    if (this.playerMarker) {
+      this.playerMarker.setLatLng([lat, lng]);
+    }
+    if (this.playerRadarCircle) {
+      this.playerRadarCircle.setLatLng([lat, lng]);
+    }
+    if (this.map) {
+      const now = Date.now();
+      if (!this.lastFollowAt || now - this.lastFollowAt >= 150) {
+        this.lastFollowAt = now;
+        this.map.setView([lat, lng], this.map.getZoom(), { animate: false });
       }
-      if (this.playerRadarCircle) {
-        this.playerRadarCircle.setLatLng([lat, lng]);
-      }
-      if (this.map) {
-        const now = Date.now();
-        if (!this.lastFollowAt || now - this.lastFollowAt >= 150) {
-          this.lastFollowAt = now;
-          this.map.setView([lat, lng], this.map.getZoom(), { animate: false });
-        }
-      }
+    }
 
     if (headingAngle !== null) {
       const arrow = document.getElementById('player-heading-arrow');
@@ -216,7 +239,6 @@ export class EcoMap {
       }
     }
 
-    // 에코스톱 상호작용 가능 여부(거리 60m 이내) 실시간 시각 효과 갱신
     ECO_STOPS.forEach(stop => {
       const dist = this.getDistanceFromPlayer(stop.lat, stop.lng);
       const el = document.getElementById(`stop-pin-${stop.id}`);
@@ -230,30 +252,27 @@ export class EcoMap {
     });
   }
 
-  // 지도 중앙을 플레이어에게 부드럽게 맞추기
   panToPlayer() {
     if (this.map && this.playerPos) {
       this.map.panTo([this.playerPos.lat, this.playerPos.lng], { animate: true, duration: 0.6 });
     }
   }
 
-  // 특정 좌표로 순간이동 (예: 학교, 북항, 수정산 핫스팟)
   teleportPlayer(lat, lng) {
     this.setPlayerPosition(lat, lng);
     this.panToPlayer();
   }
 
-  // 생물 마커 생성/갱신
   renderCreature(spawned) {
     const isDisturb = spawned.isInvasive;
     const rarityClass = spawned.rarity;
 
     const iconHtml = `
-      <div class="creature-map-marker ${isDisturb ? 'marker-invasive' : ''} rarity-${rarityClass}" id="creature-marker-${spawned.spawnId}">
+      <div class="creature-map-marker ${isDisturb ? 'marker-invasive' : ''} ${spawned.isBoss ? 'marker-boss' : ''} ${spawned.isPast ? 'marker-past' : ''} rarity-${rarityClass}" id="creature-marker-${spawned.spawnId}">
         <div class="creature-marker-bubble" style="background:${spawned.avatarBg};">
           <span class="creature-marker-emoji">${spawned.icon}</span>
         </div>
-        <div class="creature-marker-badge">${isDisturb ? '⚠️교란' : spawned.name}</div>
+        <div class="creature-marker-badge">${spawned.isBoss ? '👑 보스 ' + spawned.name : (isDisturb ? '⚠️교란' : (spawned.isPast ? '⏳ ' + spawned.name : spawned.name))}</div>
         <div class="creature-spawn-ripple"></div>
       </div>
     `;
@@ -261,13 +280,13 @@ export class EcoMap {
     const customIcon = L.divIcon({
       className: 'creature-leaflet-icon',
       html: iconHtml,
-      iconSize: [46, 52],
-      iconAnchor: [23, 46]
+      iconSize: spawned.isBoss ? [64, 74] : [46, 52],
+      iconAnchor: spawned.isBoss ? [32, 68] : [23, 46]
     });
 
     const marker = L.marker([spawned.lat, spawned.lng], {
       icon: customIcon,
-      zIndexOffset: isDisturb ? 850 : 800
+      zIndexOffset: spawned.isBoss ? 900 : (isDisturb ? 850 : 800)
     }).addTo(this.map);
 
     marker.on('click', () => {
@@ -280,7 +299,6 @@ export class EcoMap {
     this.creatureMarkers.set(spawned.spawnId, marker);
   }
 
-  // 생물 마커 제거
   removeCreatureMarker(spawnId) {
     const marker = this.creatureMarkers.get(spawnId);
     if (marker) {
@@ -289,34 +307,28 @@ export class EcoMap {
     }
   }
 
-  // 모든 생물 마커 제거
   clearAllCreatures() {
     this.creatureMarkers.forEach(marker => this.map.removeLayer(marker));
     this.creatureMarkers.clear();
   }
 
-  // 플레이어와의 거리 계산 (미터 단위)
   getDistanceFromPlayer(lat, lng) {
     return this.calculateDistanceMeters(this.playerPos.lat, this.playerPos.lng, lat, lng);
   }
 
-  // 두 좌표 간 거리 계산 (Haversine 공식)
   calculateDistanceMeters(lat1, lon1, lat2, lon2) {
-    const R = 6371e3; // 지구 반경 (m)
+    const R = 6371e3;
     const φ1 = lat1 * Math.PI / 180;
     const φ2 = lat2 * Math.PI / 180;
     const Δφ = (lat2 - lat1) * Math.PI / 180;
     const Δλ = (lon2 - lon1) * Math.PI / 180;
-
     const a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
       Math.cos(φ1) * Math.cos(φ2) *
       Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-
     return Math.round(R * c);
   }
 
-  // 클릭하여 이동 (Click to Walk) 타깃 핀 표시
   showWalkTarget(lat, lng) {
     if (this.walkTargetMarker) {
       this.map.removeLayer(this.walkTargetMarker);
@@ -334,23 +346,6 @@ export class EcoMap {
     if (this.walkTargetMarker) {
       this.map.removeLayer(this.walkTargetMarker);
       this.walkTargetMarker = null;
-    }
-  }
-
-  // 베이스맵 변경 (osm, topo, satellite)
-  setBaseMap(layerKey) {
-    if (!this.tileLayers[layerKey] || !this.map) return;
-    if (this.currentTileLayer) {
-      this.map.removeLayer(this.currentTileLayer);
-    }
-    this.currentTileLayer = this.tileLayers[layerKey];
-    this.currentTileLayer.addTo(this.map);
-    // 폴리곤이나 마커들을 레이어 위로 유지
-    this.currentTileLayer.bringToBack();
-    try {
-      localStorage.setItem('donggu_eco_go_map_layer_v1', layerKey);
-    } catch (e) {
-      console.warn('지도 스타일 저장 실패:', e);
     }
   }
 }

@@ -1,6 +1,6 @@
 /**
- * 동구 에코-고 (Dong-gu Eco-GO) 날씨 시스템
- * Open-Meteo API 실시간 연동 + 학생 교육용 "날씨 실험실(Weather Lab)" 시뮬레이션
+ * 동구 에코-GO - weather.js
+ * 실시간 기상 연동 및 시뮬레이션
  */
 
 export class WeatherSystem {
@@ -8,7 +8,7 @@ export class WeatherSystem {
     this.onWeatherChange = onWeatherChange;
     this.isLive = true;
     this.currentWeather = {
-      condition: 'clear',      // 'clear', 'rain', 'hot', 'cold', 'night', 'wind'
+      condition: 'clear',
       temp: 21.5,
       humidity: 55,
       windSpeed: 3.2,
@@ -16,7 +16,9 @@ export class WeatherSystem {
       icon: '☀️',
       desc: '활동하기 쾌적한 맑은 날씨입니다. 다양한 조류와 포유류가 활동합니다.'
     };
-    this.rainOverlayElement = null;
+    this.rainCanvas = null;
+    this.rainCtx = null;
+    this.rainAnimationActive = false;
   }
 
   async init() {
@@ -24,7 +26,6 @@ export class WeatherSystem {
     await this.fetchLiveWeather();
   }
 
-  // 실시간 기상청/Open-Meteo API 호출 (부산 동구 좌표)
   async fetchLiveWeather() {
     try {
       const url = 'https://api.open-meteo.com/v1/forecast?latitude=35.1293&longitude=129.0454&current=temperature_2m,relative_humidity_2m,precipitation,weather_code,wind_speed_10m&timezone=Asia%2FSeoul';
@@ -44,7 +45,6 @@ export class WeatherSystem {
       let icon = '☀️';
       let desc = '온화하고 맑은 기후로 야생동물의 활동성이 높습니다.';
 
-      // WMO Weather codes for rain: 51-67, 80-82, 95-99
       if (precip > 0.1 || (code >= 51 && code <= 67) || (code >= 80 && code <= 82) || code >= 95) {
         cond = 'rain';
         label = '비 내림';
@@ -59,7 +59,7 @@ export class WeatherSystem {
         cond = 'cold';
         label = '한파/겨울';
         icon = '❄️';
-        desc = '기온이 낮습니다! 북항 연안과 초량천에 청둥오리 등 철새가 자주 관찰됩니다.';
+        desc = '기온이 낮습니다! 북항 연안과 초량천에 청둥오리 등 철새가 주로 관찰됩니다.';
       } else if (wind >= 7.0) {
         cond = 'wind';
         label = '강풍';
@@ -81,7 +81,6 @@ export class WeatherSystem {
       if (this.onWeatherChange) this.onWeatherChange(this.currentWeather);
     } catch (e) {
       console.warn('Using fallback default weather:', e);
-      // Fallback default
       this.currentWeather = {
         condition: 'clear',
         temp: 22.0,
@@ -96,7 +95,6 @@ export class WeatherSystem {
     }
   }
 
-  // 교육용 시뮬레이션: 수동 날씨 모드 설정
   setSimulatedWeather(preset) {
     this.isLive = false;
     switch (preset) {
@@ -184,8 +182,6 @@ export class WeatherSystem {
   updateVisualEffects() {
     const isRain = this.currentWeather.condition === 'rain';
     const isNight = this.currentWeather.condition === 'night';
-
-    // 화면 틴트 클래스
     document.body.classList.toggle('weather-mode-rain', isRain);
     document.body.classList.toggle('weather-mode-night', isNight);
 
@@ -221,7 +217,6 @@ export class WeatherSystem {
         this.rainCtx.moveTo(d.x, d.y);
         this.rainCtx.lineTo(d.x - 2, d.y + d.length);
         this.rainCtx.stroke();
-
         d.y += d.speed;
         d.x -= 1;
         if (d.y > window.innerHeight) {
@@ -229,7 +224,6 @@ export class WeatherSystem {
           d.x = Math.random() * window.innerWidth;
         }
       });
-
       requestAnimationFrame(animate);
     };
     requestAnimationFrame(animate);
@@ -237,7 +231,7 @@ export class WeatherSystem {
 
   stopRainAnimation() {
     this.rainAnimationActive = false;
-    if (this.rainCtx) {
+    if (this.rainCtx && this.rainCanvas) {
       this.rainCtx.clearRect(0, 0, this.rainCanvas.width, this.rainCanvas.height);
     }
   }

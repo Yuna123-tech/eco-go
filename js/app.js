@@ -1,14 +1,16 @@
 /**
- * 동구 에코-고 (Dong-gu Eco-GO) 메인 애플리케이션 코디네이터
- * 포켓몬 GO 벤치마킹 생태 스폰 알고리즘, 레이더, 에코스톱, UI 인터랙션 통합
+ * 동구 에코-GO - app.js
+ * 메인 코디네이터
  */
 
-import { BIOMES, CREATURES_DATA, ECO_STOPS, QUESTS_LIST } from './data.js';
+import { POS_STORAGE_KEY, BOSS_SPOTS, BOSS_RESPAWN_MS } from './constants.js';
+import { BIOMES, CREATURES_DATA, QUESTS_LIST } from './data.js';
 import { sound } from './audio.js';
 import { WeatherSystem } from './weather.js';
 import { EcoMap } from './map.js';
 import { MovementController } from './joystick.js';
-import { MiniGameEngine } from './minigame.js';
+import { MiniGameEngine, loadEnabledUnits, saveEnabledUnits } from './minigame.js';
+import { QUIZ_UNITS, QUESTION_BANK } from './questions.js';
 import { DexManager } from './dex.js';
 
 class EcoGoApp {
@@ -18,143 +20,169 @@ class EcoGoApp {
     this.movement = null;
     this.minigame = null;
     this.dex = null;
-
-    this.activeSpawns = new Map(); // spawnId -> { ...creature, lat, lng, spawnTime, expiresAt }
+    this.activeSpawns = new Map();
     this.spawnCounter = 0;
     this.spawnTimer = null;
-    this.ecoStopsCooldown = new Map(); // stopId -> cooldownEndTime
-
+    this.ecoStopsCooldown = new Map();
     this.maxActiveCreatures = 6;
+    this.currentInteractingSpawn = null;
+    this.bossRespawnAt = {};
+    this.lastPosSaveAt = 0;
   }
 
   async init() {
-    // 1. 도감 매니저
-    this.dex = new DexManager((state) => this.updateHUD());
+    this.dex = new DexManager(() => this.updateHUD());
 
-    // 2. 미니게임 엔진
     this.minigame = new MiniGameEngine(
-      (creature, bonusExp) => this.handleCaptureSuccess(creature, bonusExp),
-      () => this.handleCaptureFail()
+      (creature, bonusExp, openDex) => this.handleCaptureSuccess(creature, bonusExp, openDex),
+      (creature) => this.handleCaptureFail(creature),
+      (isCorrect) => {
+        this.dex.recordAnswer(isCorrect);
+        this.updateHUD();
+      }
     );
 
-    // 3. 지도 초기화
     this.map = new EcoMap(
       'map-container',
       (creature, dist) => this.onCreatureMarkerClick(creature, dist),
       (stop, dist) => this.onEcoStopMarkerClick(stop, dist)
     ).init();
 
-    // 4. 이동 제어 (조이스틱/키보드/클릭 이동)
     this.movement = new MovementController(this.map, (lat, lng) => {
       this.onPlayerMove(lat, lng);
+      this.savePlayerPositionThrottled(lat, lng);
     });
     this.movement.init();
 
-    // 5. 날씨 시스템
-    this.weather = new WeatherSystem((weather) => {
-      this.onWeatherUpdate(weather);
+    this.restoredPosition = this.restoreLastPosition();
+
+    this.weather = new WeatherSystem((w) => {
+      this.onWeatherUpdate(w);
     });
     await this.weather.init();
 
-    // 6. UI 및 모달 이벤트 바인딩
     this.bindUIEvents();
-
-    // 7. HUD 초기 갱신
     this.updateHUD();
-
-    // 8. 초기 생물 스폰
     this.initialSpawnBatch();
 
-    // 9. 주기적 스폰 및 디스폰 루프 (10초마다)
+    if (this.restoredPosition) {
+      this.showToast('💾 마지막 탐사 위치에서 계속 탐사합니다!');
+    }
+
+    window.addEventListener('beforeunload', () => {
+      if (this.map && this.map.playerPos) {
+        this.savePlayerPosition(this.map.playerPos.lat, this.map.playerPos.lng);
+      }
+    });
+
     this.spawnTimer = setInterval(() => {
       this.spawnCycle();
     }, 9000);
 
-    // 10. 주변 레이더 갱신 타이머 (1초마다)
     setInterval(() => {
       this.updateRadarList();
     }, 1000);
 
-    // 11. 첫 방문 시 탐사 가이드 자동 안내
-    if (!localStorage.getItem('donggu_eco_guide_seen')) {
-      setTimeout(() => {
-        const guideModal = document.getElementById('guide-modal');
-        if (guideModal) guideModal.classList.remove('hidden');
-        localStorage.setItem('donggu_eco_guide_seen', 'true');
-      }, 700);
-    }
+    // 첫 웹 시작 시 구글 지도 API 등록 팝업 또는 가이드 확인
+    setTimeout(() => {
+      const apiKey = localStorage.getItem('google_maps_api_key');
+      const apiPrompted = sessionStorage.getItem('api_prompted');
+      const apiKeyModal = document.getElementById('api-key-modal');
+      const guideModal = document.getElementById('guide-modal');
+
+      if (!apiKey && !apiPrompted && apiKeyModal) {
+        apiKeyModal.classList.remove('hidden');
+      } else if (guideModal) {
+        guideModal.classList.remove('hidden');
+      }
+    }, 500);
   }
 
-  // ================= 생물 스폰 알고리즘 =================
   initialSpawnBatch() {
     for (let i = 0; i < 4; i++) {
       this.spawnCreatureNearPlayer();
     }
+    this.trySpawnBosses();
   }
 
   spawnCycle() {
     const now = Date.now();
-
-    // 만료된 스폰 제거 (45초 이상 경과)
     this.activeSpawns.forEach((spawn, id) => {
       if (now > spawn.expiresAt) {
         this.map.removeCreatureMarker(id);
         this.activeSpawns.delete(id);
       }
     });
-
-    // 화면 내 활성 생물 수 유지
     if (this.activeSpawns.size < this.maxActiveCreatures) {
       this.spawnCreatureNearPlayer();
     }
+    this.trySpawnBosses();
+  }
+
+  trySpawnBosses() {
+    const now = Date.now();
+    const playerPos = this.map.playerPos;
+    Object.entries(BOSS_SPOTS).forEach(([creatureId, spot]) => {
+      const spawnId = `boss_${creatureId}`;
+      if (this.activeSpawns.has(spawnId)) return;
+      if (now < (this.bossRespawnAt[creatureId] || 0)) return;
+      const dist = this.map.calculateDistanceMeters(playerPos.lat, playerPos.lng, spot.lat, spot.lng);
+      if (dist > spot.radius) return;
+      const creature = CREATURES_DATA.find(c => c.id === creatureId);
+      if (!creature) return;
+      const spawned = {
+        ...creature,
+        spawnId,
+        lat: spot.lat,
+        lng: spot.lng,
+        spawnTime: now,
+        expiresAt: Infinity
+      };
+      this.activeSpawns.set(spawnId, spawned);
+      this.map.renderCreature(spawned);
+      sound.playSpawn();
+    });
   }
 
   spawnCreatureNearPlayer() {
     const playerPos = this.map.playerPos;
     const weatherCond = this.weather.currentWeather.condition;
-
-    // 1. 현재 플레이어 위치의 바이옴 판정
     const currentBiomeId = this.detectPlayerBiome(playerPos.lat, playerPos.lng);
-
-    // 2. 출현 생물 풀 선별 및 가중치 계산
     const eligibleCreatures = [];
-    const isDisturbRoll = Math.random() < 0.18; // 18% 확률로 외래 교란종 스폰
+    const isDisturbRoll = Math.random() < 0.18;
+    // 시간의 틈: 가끔 옛날 생물(화석·멸종 생물)이 나타납니다.
+    const isPastRoll = !isDisturbRoll && Math.random() < 0.14;
 
     CREATURES_DATA.forEach(c => {
+      if (c.isBoss) return;
       let weight = 10;
-
-      // 외래종 룰
       if (c.isInvasive) {
         if (!isDisturbRoll) return;
         weight = 30;
+      } else if (c.isPast) {
+        if (!isPastRoll) return;
+        weight = c.biome === currentBiomeId ? 30 : 10;
+        if (c.weatherBoost && c.weatherBoost.includes(weatherCond)) weight *= 2;
       } else {
-        if (isDisturbRoll) return;
-
-        // 바이옴 일치 여부
+        if (isDisturbRoll || isPastRoll) return;
         if (c.biome === currentBiomeId) {
           weight += 40;
         } else {
-          weight += 5; // 인접 바이옴에서도 가끔 이동
+          weight += 5;
         }
-
-        // 희귀도 가중치
         if (c.rarity === 'common') weight += 30;
         if (c.rarity === 'uncommon') weight += 15;
         if (c.rarity === 'rare') weight += 6;
-        if (c.rarity === 'epic') weight += 2; // 멸종위기종은 희귀하게 출현
-
-        // 날씨 부스트 룰 (핵심!)
+        if (c.rarity === 'epic') weight += 2;
         if (c.weatherBoost && c.weatherBoost.includes(weatherCond)) {
-          weight *= 4.0; // 비 올 때 청개구리/버섯 4배 (300% 증가)
+          weight *= 4.0;
         }
       }
-
       eligibleCreatures.push({ creature: c, weight });
     });
 
     if (eligibleCreatures.length === 0) return;
 
-    // 가중치 기반 랜덤 선택
     const totalWeight = eligibleCreatures.reduce((sum, item) => sum + item.weight, 0);
     let rand = Math.random() * totalWeight;
     let selected = eligibleCreatures[0].creature;
@@ -167,14 +195,11 @@ class EcoGoApp {
       }
     }
 
-    // 플레이어 주변 도넛 영역 (80m ~ 200m) 랜덤 좌표 생성
     const angle = Math.random() * Math.PI * 2;
-    const distanceMeters = 75 + Math.random() * 115; // 75m ~ 190m
+    const distanceMeters = 75 + Math.random() * 115;
     const earthRadius = 6371000;
-
     const dLat = (distanceMeters * Math.cos(angle)) / earthRadius * (180 / Math.PI);
     const dLng = (distanceMeters * Math.sin(angle)) / (earthRadius * Math.cos(playerPos.lat * Math.PI / 180)) * (180 / Math.PI);
-
     const spawnLat = playerPos.lat + dLat;
     const spawnLng = playerPos.lng + dLng;
 
@@ -186,7 +211,7 @@ class EcoGoApp {
       lat: spawnLat,
       lng: spawnLng,
       spawnTime: Date.now(),
-      expiresAt: Date.now() + 50000 // 50초 지속
+      expiresAt: Date.now() + 50000
     };
 
     this.activeSpawns.set(spawnId, spawnedObj);
@@ -205,19 +230,48 @@ class EcoGoApp {
         closestBiome = biome.id;
       }
     });
-
     return closestBiome;
   }
 
-  // ================= 플레이어 이동 및 상호작용 =================
   onPlayerMove(lat, lng) {
     const currentBiomeId = this.detectPlayerBiome(lat, lng);
     const biome = BIOMES[currentBiomeId];
-
     const biomeBadge = document.getElementById('hud-current-biome');
     if (biomeBadge && biome) {
       biomeBadge.innerHTML = `<span class="biome-icon">${biome.icon}</span> <span>${biome.shortName} 바이옴</span>`;
       biomeBadge.style.borderColor = biome.borderColor;
+    }
+  }
+
+  savePlayerPositionThrottled(lat, lng) {
+    const now = Date.now();
+    if (now - this.lastPosSaveAt < 2000) return;
+    this.lastPosSaveAt = now;
+    this.savePlayerPosition(lat, lng);
+  }
+
+  savePlayerPosition(lat, lng) {
+    try {
+      localStorage.setItem(POS_STORAGE_KEY, JSON.stringify({ lat, lng }));
+    } catch (e) {
+      console.warn('탐사 위치 저장 실패:', e);
+    }
+  }
+
+  restoreLastPosition() {
+    try {
+      const raw = localStorage.getItem(POS_STORAGE_KEY);
+      if (!raw) return false;
+      const pos = JSON.parse(raw);
+      if (typeof pos.lat !== 'number' || typeof pos.lng !== 'number') return false;
+      const b = this.movement.bounds;
+      const lat = Math.max(b.minLat, Math.min(b.maxLat, pos.lat));
+      const lng = Math.max(b.minLng, Math.min(b.maxLng, pos.lng));
+      this.map.setPlayerPosition(lat, lng);
+      return true;
+    } catch (e) {
+      console.warn('탐사 위치 복원 실패:', e);
+      return false;
     }
   }
 
@@ -227,21 +281,19 @@ class EcoGoApp {
       this.showToast(`🔍 생물과의 거리: ${dist}m (140m 이내로 더 다가가야 관찰할 수 있습니다!)`);
       return;
     }
-
-    // 관찰/포획 미니게임 시작
     this.currentInteractingSpawn = spawned;
     this.minigame.startEncounter(spawned);
   }
 
   handleCaptureSuccess(creature, bonusExp, openDex = true) {
-    // 맵에서 해당 마커 제거
     if (this.currentInteractingSpawn) {
       this.map.removeCreatureMarker(this.currentInteractingSpawn.spawnId);
       this.activeSpawns.delete(this.currentInteractingSpawn.spawnId);
       this.currentInteractingSpawn = null;
     }
-
-    // 도감 기록 및 점수 갱신
+    if (creature.isBoss) {
+      this.bossRespawnAt[creature.id] = Date.now() + BOSS_RESPAWN_MS;
+    }
     this.dex.recordCapture(creature, bonusExp);
     this.updateHUD();
     this.updateRadarList();
@@ -254,12 +306,21 @@ class EcoGoApp {
     }
   }
 
-  handleCaptureFail() {
-    this.showToast('생물이 수풀 속으로 달아났습니다!');
+  handleCaptureFail(creature) {
+    const spawn = this.currentInteractingSpawn;
     this.currentInteractingSpawn = null;
+    if (creature && creature.isBoss) {
+      this.showToast(`👑 ${creature.name}이(가) 잠시 물러났습니다. 설명을 읽고 다시 도전해 보세요!`);
+      return;
+    }
+    if (spawn) {
+      this.map.removeCreatureMarker(spawn.spawnId);
+      this.activeSpawns.delete(spawn.spawnId);
+      this.updateRadarList();
+    }
+    this.showToast(`💨 ${creature ? creature.name : '생물'}이(가) 수풀 속으로 달아났습니다! 다음엔 꼭 맞혀 봐요.`);
   }
 
-  // ================= 에코 스톱 상호작용 =================
   onEcoStopMarkerClick(stop, dist) {
     sound.playClick();
     const modal = document.getElementById('ecostop-modal');
@@ -310,32 +371,21 @@ class EcoGoApp {
     if (spinBtn) spinBtn.disabled = true;
 
     sound.playSpin();
-    if (disk) {
-      disk.classList.add('spinning');
-    }
+    if (disk) disk.classList.add('spinning');
 
     setTimeout(() => {
       if (disk) disk.classList.remove('spinning');
       sound.playSuccess();
-
-      // 쿨다운 등록 (45초)
       this.ecoStopsCooldown.set(stop.id, Date.now() + 45000);
-
-      // 보상 획득
       this.dex.recordStopSpin(stop.id, stop.rewards);
       this.updateHUD();
-
-      // 보상 팝업
       this.showToast(`🎁 [${stop.name}] 탐사 완료! (+${stop.rewards.exp} EXP 획득)`);
       if (spinBtn) spinBtn.innerText = '수령 완료 (쿨다운 적용)';
     }, 1200);
   }
 
-  // ================= HUD & 레이더 갱신 =================
   updateHUD() {
     const rankInfo = this.dex.getCurrentRank();
-
-    // 랭크 및 레벨
     const rankTitle = document.getElementById('hud-player-title');
     const levelNum = document.getElementById('hud-player-level');
     const expBar = document.getElementById('hud-exp-progress-bar');
@@ -346,7 +396,6 @@ class EcoGoApp {
     if (expBar) expBar.style.width = `${rankInfo.progressPercent}%`;
     if (expText) expText.innerText = `${rankInfo.exp} EXP`;
 
-    // 생물다양성 지수 & 정화 포인트
     const bioScoreEl = document.getElementById('hud-bio-score');
     const purifyScoreEl = document.getElementById('hud-purify-score');
     if (bioScoreEl) bioScoreEl.innerText = this.dex.state.biodiversityIndex;
@@ -366,7 +415,6 @@ class EcoGoApp {
     });
 
     sortedSpawns.sort((a, b) => a.dist - b.dist);
-
     radarListEl.innerHTML = '';
     if (sortedSpawns.length === 0) {
       radarListEl.innerHTML = '<div class="radar-empty">주변 200m 내 탐지된 생물이 없습니다.</div>';
@@ -387,12 +435,10 @@ class EcoGoApp {
 
       row.onclick = () => {
         sound.playClick();
-        // 플레이어가 해당 생물을 향해 자동 걷기 시작
         this.movement.targetPos = { lat: item.lat, lng: item.lng };
         this.map.showWalkTarget(item.lat, item.lng);
         this.showToast(`📍 [${item.name}] 위치로 이동합니다 (${item.dist}m)`);
       };
-
       radarListEl.appendChild(row);
     });
   }
@@ -409,9 +455,81 @@ class EcoGoApp {
     this.showToast(`🌤️ 동구 기상: ${weather.label} (${weather.temp}°C) - ${weather.desc}`);
   }
 
-  // ================= UI 바인딩 =================
   bindUIEvents() {
-    // 0. 탐사 가이드 모달 열기/닫기 및 탭 전환
+    // -1. 구글 지도 API 등록 모달 제어
+    const apiKeyModal = document.getElementById('api-key-modal');
+    const apiKeyOpenBtn = document.getElementById('api-key-open-btn');
+    const apiKeyCloseBtn = document.getElementById('api-key-close-btn');
+    const apiKeySaveBtn = document.getElementById('api-key-save-btn');
+    const apiKeySkipBtn = document.getElementById('api-key-skip-btn');
+    const apiKeyDeleteBtn = document.getElementById('api-key-delete-btn');
+    const apiKeyInput = document.getElementById('google-api-key-input');
+    const apiKeyDeleteWrap = document.getElementById('api-key-delete-wrap');
+
+    const openApiKeyModal = () => {
+      sound.playClick();
+      const currentKey = localStorage.getItem('google_maps_api_key') || '';
+      if (apiKeyInput) apiKeyInput.value = currentKey;
+      if (apiKeyDeleteWrap) apiKeyDeleteWrap.classList.toggle('hidden', !currentKey);
+      if (apiKeyModal) apiKeyModal.classList.remove('hidden');
+    };
+
+    const closeApiKeyModal = () => {
+      sound.playClick();
+      if (apiKeyModal) apiKeyModal.classList.add('hidden');
+    };
+
+    if (apiKeyOpenBtn) apiKeyOpenBtn.onclick = openApiKeyModal;
+    if (apiKeyCloseBtn) apiKeyCloseBtn.onclick = closeApiKeyModal;
+
+    if (apiKeySaveBtn) {
+      apiKeySaveBtn.onclick = () => {
+        sound.playSuccess();
+        const keyVal = apiKeyInput ? apiKeyInput.value.trim() : '';
+        if (keyVal) {
+          localStorage.setItem('google_maps_api_key', keyVal);
+          this.map.setupGoogleLayers(keyVal);
+          this.map.setBaseMap('googleRoad');
+          this.showToast('🎉 구글 지도 API 키가 등록되었습니다! (구글 지도로 전환)');
+          if (this.updateMapLayerButton) this.updateMapLayerButton();
+        } else {
+          this.showToast('API 키가 입력되지 않아 기본 오픈 지도로 유지됩니다.');
+        }
+        sessionStorage.setItem('api_prompted', 'true');
+        closeApiKeyModal();
+
+        const guideModal = document.getElementById('guide-modal');
+        if (guideModal) setTimeout(() => guideModal.classList.remove('hidden'), 350);
+      };
+    }
+
+    if (apiKeySkipBtn) {
+      apiKeySkipBtn.onclick = () => {
+        sound.playClick();
+        sessionStorage.setItem('api_prompted', 'true');
+        closeApiKeyModal();
+        this.showToast('표준 지도(기본 무료)로 시작합니다.');
+
+        const guideModal = document.getElementById('guide-modal');
+        if (guideModal) setTimeout(() => guideModal.classList.remove('hidden'), 350);
+      };
+    }
+
+    if (apiKeyDeleteBtn) {
+      apiKeyDeleteBtn.onclick = () => {
+        sound.playClick();
+        localStorage.removeItem('google_maps_api_key');
+        this.map.setupGoogleLayers('');
+        this.map.setBaseMap('osm');
+        if (apiKeyInput) apiKeyInput.value = '';
+        if (apiKeyDeleteWrap) apiKeyDeleteWrap.classList.add('hidden');
+        this.showToast('저장된 구글 지도 API 키가 삭제되었습니다.');
+        if (this.updateMapLayerButton) this.updateMapLayerButton();
+        closeApiKeyModal();
+      };
+    }
+
+    // 0. 탐사 가이드 모달
     const guideModal = document.getElementById('guide-modal');
     const guideOpenBtn = document.getElementById('guide-open-btn');
     const guideFloatingBtn = document.getElementById('guide-floating-btn');
@@ -432,7 +550,6 @@ class EcoGoApp {
     if (guideCloseBtn) guideCloseBtn.onclick = closeGuide;
     if (guideStartBtn) guideStartBtn.onclick = closeGuide;
 
-    // 가이드 내부 탭 전환
     document.querySelectorAll('.guide-tab-btn').forEach(btn => {
       btn.onclick = () => {
         sound.playClick();
@@ -445,38 +562,16 @@ class EcoGoApp {
       };
     });
 
-    // 1. 하단 바 도감 버튼
+    // 0. 문제 범위 (출제 단원 고르기)
+    this.bindQuizSettings();
+
+    // 1. 도감 버튼
     const dexNavBtn = document.getElementById('nav-dex-btn');
-    if (dexNavBtn) {
-      dexNavBtn.onclick = () => this.dex.openDexModal();
-    }
+    if (dexNavBtn) dexNavBtn.onclick = () => this.dex.openDexModal();
     const dexCloseBtn = document.getElementById('dex-close-btn');
-    if (dexCloseBtn) {
-      dexCloseBtn.onclick = () => this.dex.closeDexModal();
-    }
+    if (dexCloseBtn) dexCloseBtn.onclick = () => this.dex.closeDexModal();
 
-    // 1.1 포획 성공 팝업 버튼 안전 바인딩
-    const successConfirmBtn = document.getElementById('success-confirm-btn');
-    if (successConfirmBtn) {
-      successConfirmBtn.addEventListener('click', () => {
-        const successCard = document.getElementById('encounter-success-card');
-        if (successCard) successCard.classList.add('hidden');
-        const encModal = document.getElementById('encounter-modal');
-        if (encModal) encModal.classList.add('hidden');
-        this.dex.openDexModal();
-      });
-    }
-    const successContinueBtn = document.getElementById('success-continue-btn');
-    if (successContinueBtn) {
-      successContinueBtn.addEventListener('click', () => {
-        const successCard = document.getElementById('encounter-success-card');
-        if (successCard) successCard.classList.add('hidden');
-        const encModal = document.getElementById('encounter-modal');
-        if (encModal) encModal.classList.add('hidden');
-      });
-    }
-
-    // 2. 날씨 실험실 모달 열기/닫기
+    // 2. 날씨 실험실
     const weatherWidget = document.getElementById('hud-weather-widget');
     const weatherModal = document.getElementById('weather-lab-modal');
     const weatherCloseBtn = document.getElementById('weather-close-btn');
@@ -494,7 +589,6 @@ class EcoGoApp {
       };
     }
 
-    // 날씨 프리셋 버튼들
     document.querySelectorAll('.weather-preset-btn').forEach(btn => {
       btn.onclick = () => {
         sound.playClick();
@@ -508,7 +602,7 @@ class EcoGoApp {
       };
     });
 
-    // 3. 순간이동 핫스팟 모달
+    // 3. 순간이동 핫스팟
     const teleportNavBtn = document.getElementById('nav-teleport-btn');
     const teleportModal = document.getElementById('teleport-modal');
     const teleportCloseBtn = document.getElementById('teleport-close-btn');
@@ -533,12 +627,13 @@ class EcoGoApp {
         const lng = parseFloat(btn.getAttribute('data-lng'));
         this.map.teleportPlayer(lat, lng);
         this.onPlayerMove(lat, lng);
+        this.savePlayerPosition(lat, lng);
         this.showToast(`🚀 [${btn.innerText}] 구역으로 이동했습니다!`);
         if (teleportModal) teleportModal.classList.add('hidden');
       };
     });
 
-    // 4. 생태 퀘스트 모달
+    // 4. 생태 퀘스트
     const questsNavBtn = document.getElementById('nav-quests-btn');
     const questsModal = document.getElementById('quests-modal');
     const questsCloseBtn = document.getElementById('quests-close-btn');
@@ -557,12 +652,21 @@ class EcoGoApp {
       };
     }
 
-    // 4.5 지도 스타일 변경 버튼 (표준 / 지형 / 위성)
-    const mapLayerBtn = document.getElementById('map-layer-btn');
-    if (mapLayerBtn) {
-      const layers = ['osm', 'topo', 'satellite'];
-      const labels = ['🗺️ 표준 지도', '🏞️ 생태 지형도', '🛰️ 위성 지도'];
-      let layerIdx = 0;
+    // 4.5 지도 스타일 변경 (구글 지도 연동 지원)
+    this.updateMapLayerButton = () => {
+      const mapLayerBtn = document.getElementById('map-layer-btn');
+      if (!mapLayerBtn) return;
+      const hasGoogle = !!this.map.googleApiKey;
+      const layers = hasGoogle
+        ? ['googleRoad', 'googleTerrain', 'googleSat', 'osm']
+        : ['osm', 'topo', 'satellite'];
+      const labels = hasGoogle
+        ? ['🗺️ 구글 일반', '🏞️ 구글 지형', '🛰️ 구글 위성', '🌐 표준 지도']
+        : ['🗺️ 표준 지도', '🏞️ 생태 지형도', '🛰️ 위성 지도'];
+
+      const currentKey = Object.keys(this.map.tileLayers).find(k => this.map.tileLayers[k] === this.map.currentTileLayer);
+      let layerIdx = Math.max(0, layers.indexOf(currentKey));
+      mapLayerBtn.innerText = labels[layerIdx];
       mapLayerBtn.onclick = () => {
         sound.playClick();
         layerIdx = (layerIdx + 1) % layers.length;
@@ -570,9 +674,10 @@ class EcoGoApp {
         mapLayerBtn.innerText = labels[layerIdx];
         this.showToast(`🗺️ 지도 스타일: [${labels[layerIdx]}] 전환`);
       };
-    }
+    };
+    this.updateMapLayerButton();
 
-    // 5. 이동 속도 변경 버튼 (도보 / 자전거 / 카트)
+    // 5. 이동 속도
     const speedToggleBtn = document.getElementById('speed-toggle-btn');
     if (speedToggleBtn) {
       const modes = ['walk', 'bike', 'cart'];
@@ -586,7 +691,7 @@ class EcoGoApp {
       };
     }
 
-    // 6. 음소거 토글 버튼
+    // 6. 음소거
     const soundToggleBtn = document.getElementById('sound-toggle-btn');
     if (soundToggleBtn) {
       soundToggleBtn.onclick = () => {
@@ -595,7 +700,7 @@ class EcoGoApp {
       };
     }
 
-    // 7. 레이더 드로어 토글 (모바일 편의)
+    // 7. 레이더 토글
     const radarHeader = document.getElementById('radar-drawer-header');
     const radarDrawer = document.getElementById('radar-drawer');
     if (radarHeader && radarDrawer) {
@@ -604,16 +709,38 @@ class EcoGoApp {
       };
     }
 
-    // 8. 내 위치로 지도 중앙 정렬
+    // 8. 내 위치로 지도 맞춤 (GPS 연동)
     const locateBtn = document.getElementById('locate-me-btn');
     if (locateBtn) {
       locateBtn.onclick = () => {
         sound.playClick();
-        this.map.panToPlayer();
+        if (!navigator.geolocation) {
+          this.map.panToPlayer();
+          this.showToast('📡 GPS를 지원하지 않아 탐사원 위치로 이동합니다.');
+          return;
+        }
+        this.showToast('📡 현재 위치를 확인하는 중...');
+        navigator.geolocation.getCurrentPosition((pos) => {
+          const b = this.movement.bounds;
+          const rawLat = pos.coords.latitude;
+          const rawLng = pos.coords.longitude;
+          const lat = Math.max(b.minLat, Math.min(b.maxLat, rawLat));
+          const lng = Math.max(b.minLng, Math.min(b.maxLng, rawLng));
+          const clamped = lat !== rawLat || lng !== rawLng;
+          this.map.teleportPlayer(lat, lng);
+          this.onPlayerMove(lat, lng);
+          this.savePlayerPosition(lat, lng);
+          this.showToast(clamped
+            ? '📡 GPS가 동구 탐사 구역 밖이라 구역 경계에서 시작합니다!'
+            : '📡 실제 현재 위치로 이동했습니다!');
+        }, () => {
+          this.map.panToPlayer();
+          this.showToast('📡 GPS 신호를 받지 못해 탐사원 위치로 이동합니다.');
+        }, { enableHighAccuracy: true, timeout: 8000, maximumAge: 30000 });
       };
     }
 
-    // 9. 교사용 데모 데이터 언락 버튼
+    // 9. 데모 데이터 언락
     const demoUnlockBtn = document.getElementById('dex-demo-unlock-btn');
     if (demoUnlockBtn) {
       demoUnlockBtn.onclick = () => {
@@ -635,16 +762,79 @@ class EcoGoApp {
       };
     }
 
-    // 브라우저 첫 인터랙션 시 오디오 컨텍스트 활성화
     window.addEventListener('click', () => {
       sound.ensureContext();
     }, { once: true });
   }
 
+  bindQuizSettings() {
+    const modal = document.getElementById('quiz-settings-modal');
+    const list = document.getElementById('quiz-unit-list');
+    const openBtn = document.getElementById('quiz-settings-open-btn');
+    const navBtn = document.getElementById('nav-quiz-btn');
+    if (!modal || !list) return;
+
+    const counts = {};
+    QUESTION_BANK.forEach(q => { counts[q.unit] = (counts[q.unit] || 0) + 1; });
+
+    const render = () => {
+      const enabled = new Set(loadEnabledUnits());
+      list.innerHTML = '';
+      Object.entries(QUIZ_UNITS).forEach(([id, unit]) => {
+        const label = document.createElement('label');
+        label.className = `quiz-unit-item${enabled.has(id) ? ' checked' : ''}`;
+        label.innerHTML = `
+          <input type="checkbox" value="${id}" ${enabled.has(id) ? 'checked' : ''}>
+          <span class="quiz-unit-icon">${unit.icon}</span>
+          <span class="quiz-unit-text"><b>${unit.grade}</b> ${unit.label}</span>
+          <span class="quiz-unit-count">${counts[id] || 0}문제</span>`;
+        label.querySelector('input').onchange = () => {
+          const checked = [...list.querySelectorAll('input:checked')].map(i => i.value);
+          if (!checked.length) {
+            label.querySelector('input').checked = true;
+            this.showToast('📚 적어도 한 단원은 골라야 해요!');
+            return;
+          }
+          saveEnabledUnits(checked);
+          label.classList.toggle('checked', label.querySelector('input').checked);
+          updateSummary();
+        };
+        list.appendChild(label);
+      });
+      updateSummary();
+    };
+    const updateSummary = () => {
+      const summary = document.getElementById('quiz-settings-summary');
+      const enabled = loadEnabledUnits();
+      const total = enabled.reduce((sum, id) => sum + (counts[id] || 0), 0);
+      const stats = this.dex.state.quizStats || { correct: 0, total: 0 };
+      const rate = stats.total ? Math.round((stats.correct / stats.total) * 100) : 0;
+      if (summary) summary.innerText = `선택한 단원 ${enabled.length}개 · 문제은행 ${total}문제 (+ 만난 생물 맞춤 문제) | 지금까지 ${stats.correct}/${stats.total} 정답 (${rate}%)`;
+    };
+    const setAll = (on) => {
+      sound.playClick();
+      saveEnabledUnits(on ? Object.keys(QUIZ_UNITS) : ['4-2-2']);
+      render();
+    };
+
+    const open = () => {
+      sound.playClick();
+      render();
+      modal.classList.remove('hidden');
+    };
+    if (openBtn) openBtn.onclick = open;
+    if (navBtn) navBtn.onclick = open;
+    const closeBtn = document.getElementById('quiz-settings-close-btn');
+    if (closeBtn) closeBtn.onclick = () => { sound.playClick(); modal.classList.add('hidden'); };
+    const allBtn = document.getElementById('quiz-units-all-btn');
+    if (allBtn) allBtn.onclick = () => setAll(true);
+    const ecoBtn = document.getElementById('quiz-units-eco-btn');
+    if (ecoBtn) ecoBtn.onclick = () => setAll(false);
+  }
+
   renderQuestsList() {
     const listEl = document.getElementById('quests-list-container');
     if (!listEl) return;
-
     listEl.innerHTML = '';
     QUESTS_LIST.forEach(q => {
       const isDone = !!this.dex.state.completedQuests[q.id];
@@ -668,7 +858,6 @@ class EcoGoApp {
     toast.className = 'eco-floating-toast';
     toast.innerText = message;
     document.body.appendChild(toast);
-
     setTimeout(() => toast.classList.add('visible'), 50);
     setTimeout(() => {
       toast.classList.remove('visible');
@@ -677,9 +866,15 @@ class EcoGoApp {
   }
 }
 
-// 브라우저 로딩 완료 후 시작
-window.addEventListener('DOMContentLoaded', () => {
+// DOM 로드 후 실행 (file:// 및 http:// 모두 호환)
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', () => {
+    const app = new EcoGoApp();
+    app.init();
+    window.ecoGoApp = app;
+  });
+} else {
   const app = new EcoGoApp();
   app.init();
   window.ecoGoApp = app;
-});
+}
