@@ -1,0 +1,924 @@
+/**
+ * 동구 에코-고 (Dong-gu Eco-GO) 생태 데이터베이스
+ * 부산광역시 동구 실제 지형(구봉산·수정산 산림, 초량천 도심 하천, 북항 친수공원 연안) 기반
+ */
+
+// 부산 동구 중심 좌표 (동구청/초량 일대)
+export const DONGGU_CENTER = {
+  lat: 35.1293,
+  lng: 129.0385,
+  zoom: 15
+};
+
+// 동구 내 3대 바이옴(서식 구역) 정의
+export const BIOMES = {
+  mountain: {
+    id: 'mountain',
+    name: '구봉산·수정산 산림 바이옴',
+    shortName: '마운틴',
+    color: '#10b981',
+    bgColor: 'rgba(16, 185, 129, 0.15)',
+    borderColor: '#059669',
+    icon: '🌲',
+    description: '수정산과 구봉산 자락의 울창한 숲과 편백림, 계곡부로 다양한 포유류와 조류가 서식합니다.',
+    center: { lat: 35.1380, lng: 129.0280 },
+    radius: 750 // meters
+  },
+  stream: {
+    id: 'stream',
+    name: '초량천·도심 하천 바이옴',
+    shortName: '스트림',
+    color: '#06b6d4',
+    bgColor: 'rgba(6, 182, 212, 0.15)',
+    borderColor: '#0891b2',
+    icon: '💧',
+    description: '복원된 생태하천 초량천과 주거지 통학로를 잇는 수생태계 및 도시 생태축입니다.',
+    center: { lat: 35.1215, lng: 129.0380 },
+    radius: 650
+  },
+  harbor: {
+    id: 'harbor',
+    name: '북항 친수공원·연안 바이옴',
+    shortName: '하버',
+    color: '#3b82f6',
+    bgColor: 'rgba(59, 130, 246, 0.15)',
+    borderColor: '#2563eb',
+    icon: '🌊',
+    description: '부산역 뒤편 북항 친수공원과 경관수로, 바다가 만나는 해안 갯벌 및 연안 생태계입니다.',
+    center: { lat: 35.1180, lng: 129.0490 },
+    radius: 800
+  }
+};
+
+// 부산 동구 주요 생태 거점 (Eco-Stop / 포켓스톱)
+export const ECO_STOPS = [
+  {
+    id: 'stop_sujeong_park',
+    name: '수정산 가족체육공원',
+    category: '산림 거점',
+    biome: 'mountain',
+    lat: 35.1385,
+    lng: 129.0285,
+    icon: '🏞️',
+    description: '피톤치드 가득한 편백나무 숲과 숲속 도서관이 있는 동구의 대표 산림 휴식처입니다.',
+    trivia: '수정산(315m)은 옛날 맑고 투명한 수정(水晶)이 많이 채굴되어 붙여진 이름입니다.',
+    rewards: { exp: 60, film: 4, bait: 2 }
+  },
+  {
+    id: 'stop_gubong_forest',
+    name: '구봉산 치유의 숲길',
+    category: '산림 생태로',
+    biome: 'mountain',
+    lat: 35.1285,
+    lng: 129.0225,
+    icon: '🍂',
+    description: '천연기념물 붉은배새매와 오색딱따구리 소리를 들을 수 있는 야생 조류의 은신처입니다.',
+    trivia: '구봉산 자락에는 사계절 마르지 않는 청정 약수터와 야생 다람쥐 서식지가 잘 보존되어 있습니다.',
+    rewards: { exp: 50, film: 3, bait: 2 }
+  },
+  {
+    id: 'stop_choryang_stream',
+    name: '초량천 생태하천 & 음악분수',
+    category: '수생태 거점',
+    biome: 'stream',
+    lat: 35.1205,
+    lng: 129.0385,
+    icon: '⛲',
+    description: '도심 속 아스팔트를 걷어내고 자연형 하천으로 복원되어 버들치와 왜가리가 돌아왔습니다.',
+    trivia: '초량(草梁)이란 지명은 "풀이 많은 길목"이라는 순우리말 "새띠마을"에서 유래되었습니다.',
+    rewards: { exp: 60, film: 5, bait: 1 }
+  },
+  {
+    id: 'stop_168_stairs',
+    name: '초량 이바구길 168계단',
+    category: '역사생태 거점',
+    biome: 'stream',
+    lat: 35.1218,
+    lng: 129.0345,
+    icon: '🪜',
+    description: '부산 산복도로의 역사와 도심 텃밭, 꿀벌과 나비가 오가는 도심 골목 생태계입니다.',
+    trivia: '168계단 주변 쌈지공원에는 계절마다 참제비고깔, 맥문동 등 자생 야생화가 식재되어 있습니다.',
+    rewards: { exp: 40, film: 3, bait: 1 }
+  },
+  {
+    id: 'stop_northport_park',
+    name: '부산항 북항 친수공원',
+    category: '해양수변 거점',
+    biome: 'harbor',
+    lat: 35.1182,
+    lng: 129.0485,
+    icon: '🎡',
+    description: '부산항 바닷물이 드나드는 해수 경관수로와 갯벌 염생식물이 조성된 해양 생태공원입니다.',
+    trivia: '북항 친수공원의 수로는 조수간만의 차에 의해 매일 2회 바닷물이 자연 순환되어 숭어 떼가 자주 관찰됩니다.',
+    rewards: { exp: 70, film: 5, bait: 3 }
+  },
+  {
+    id: 'stop_eurasia_platform',
+    name: '부산역 유라시아 플랫폼',
+    category: '도심연계 거점',
+    biome: 'harbor',
+    lat: 35.1155,
+    lng: 129.0415,
+    icon: '🚉',
+    description: '도시와 항만을 잇는 거점이자 북항 상공을 비행하는 갈매기와 철새들의 관찰 포인트입니다.',
+    trivia: '부산역 앞 광장은 빗물 순환형 친환경 투수 블록과 옥상 녹화 정원이 조성되어 있습니다.',
+    rewards: { exp: 50, film: 4, bait: 1 }
+  },
+  {
+    id: 'stop_donggu_office',
+    name: '동구청 생태정원',
+    category: '공공녹지 거점',
+    biome: 'stream',
+    lat: 35.1293,
+    lng: 129.0454,
+    icon: '🏛️',
+    description: '구민과 학생들을 위한 우리 꽃 야생화 화단과 빗물 저류 연못이 마련된 행정 생태 거점입니다.',
+    trivia: '동구의 구목(區木)은 동백나무이며, 구화(區花)는 국화, 구조(區鳥)는 비둘기입니다.',
+    rewards: { exp: 50, film: 4, bait: 2 }
+  }
+];
+
+// 동구 생태 생물 데이터 (총 30종)
+// 국립생태원, 국립생물자원관 실제 조사 데이터 규격 참고
+export const CREATURES_DATA = [
+  // ==================== 1. 산림 바이옴 (구봉산·수정산) ====================
+  {
+    id: 'creature_boar',
+    name: '멧돼지',
+    sciName: 'Sus scrofa',
+    biome: 'mountain',
+    category: '포유류',
+    rarity: 'rare',
+    endangered: '관심대상',
+    isInvasive: false,
+    icon: '🐗',
+    avatarBg: '#d97706',
+    points: 40,
+    habitat: '수정산 깊은 숲, 관목림',
+    foodChain: '2차 소비자 / 잡식성 (도토리, 지렁이, 뿌리)',
+    weatherBoost: ['night', 'rain'],
+    description: '수정산과 구봉산 능선에 서식하는 대형 포유류입니다. 땅속 지렁이나 도토리를 찾아 주둥이로 흙을 파헤치는 습성이 있어 숲의 토양을 순환시키는 역할을 합니다.',
+    quiz: {
+      question: '멧돼지가 숲에서 진흙 목욕(Wallowing)을 즐겨 하는 주된 생태적 이유는 무엇일까요?',
+      options: ['체온을 낮추고 진드기 등 외부 기생충을 없애기 위해', '천적에게 몸을 숨기기 위한 위장색을 만들기 위해', '물속의 물고기를 잡기 위한 수영 훈련을 위해'],
+      answerIndex: 0,
+      explanation: '멧돼지는 땀샘이 거의 발달하지 않아 체온 조절을 위해 진흙 목욕을 하며, 흙이 마르면서 기생충을 함께 떼어냅니다.'
+    }
+  },
+  {
+    id: 'creature_water_deer',
+    name: '고라니',
+    sciName: 'Hydropotes inermis',
+    biome: 'mountain',
+    category: '포유류',
+    rarity: 'rare',
+    endangered: 'IUCN 취약(VU) / 국제보호종',
+    isInvasive: false,
+    icon: '🦌',
+    avatarBg: '#b45309',
+    points: 50,
+    habitat: '구봉산 계곡부 및 산기슭 초지',
+    foodChain: '1차 소비자 / 초식성 (풀, 연한 나뭇가지)',
+    weatherBoost: ['clear', 'cold'],
+    description: '한국에서는 흔히 보이지만 세계적으로는 중국 일부와 한반도에만 서식하는 소중한 멸종위기 취약종입니다. 뿔이 없고 수컷에게 날카로운 송곳니가 돌출되어 있습니다.',
+    quiz: {
+      question: '고라니 수컷이 사슴과 다른 가장 큰 신체적 특징은 무엇일까요?',
+      options: ['머리에 화려한 뿔이 자란다', '머리에 뿔이 없는 대신 긴 송곳니(어금니)가 입 밖으로 나와 있다', '꼬리가 몸길이만큼 길다'],
+      answerIndex: 1,
+      explanation: '고라니는 사슴과 동물 중 드물게 수컷에게 뿔이 없는 대신 입 밖으로 5~6cm 길이의 길고 날카로운 송곳니가 자라납니다.'
+    }
+  },
+  {
+    id: 'creature_goshawk',
+    name: '붉은배새매',
+    sciName: 'Accipiter soloensis',
+    biome: 'mountain',
+    category: '조류',
+    rarity: 'epic',
+    endangered: '멸종위기야생생물 II급 / 천연기념물 제323-2호',
+    isInvasive: false,
+    icon: '🦅',
+    avatarBg: '#dc2626',
+    points: 100,
+    habitat: '구봉산 상공 및 참나무 숲림',
+    foodChain: '최고 포식자 (개구리, 도마뱀, 곤충 사냥)',
+    weatherBoost: ['clear'],
+    description: '가슴과 배 부분이 은은한 붉은 적갈색을 띠는 여름 철새입니다. 수정산과 구봉산 숲속을 활공하며 개구리와 메뚜기를 사냥하는 최상위 포식자로 숲의 생태적 건강성을 나타냅니다.',
+    quiz: {
+      question: '붉은배새매가 멸종위기종 및 천연기념물로 지정되어 보호받는 주된 이유는 무엇일까요?',
+      options: ['농약 살포로 먹이가 줄고 번식지가 파괴되어 개체 수가 급감했기 때문에', '사람을 공격하는 맹수류이기 때문에', '겨울철 북극에서만 번식하는 희귀성 때문에'],
+      answerIndex: 0,
+      explanation: '붉은배새매는 산림 개발과 농약 과다 사용으로 주 먹이인 양서류와 곤충이 줄어들며 멸종위기에 처해 국가적 보호를 받고 있습니다.'
+    }
+  },
+  {
+    id: 'creature_great_tit',
+    name: '박새',
+    sciName: 'Parus minor',
+    biome: 'mountain',
+    category: '조류',
+    rarity: 'common',
+    endangered: '관심대상',
+    isInvasive: false,
+    icon: '🐦',
+    avatarBg: '#059669',
+    points: 20,
+    habitat: '수정산 숲길, 활엽수림, 숲속 정원',
+    foodChain: '2차 소비자 (송충이 등 해충 구제)',
+    weatherBoost: ['clear'],
+    description: '가슴 한가운데에 검은 넥타이를 맨 것 같은 굵은 띠가 특징인 텃새입니다. 숲속의 나방 유충과 송충이를 엄청나게 잡아먹어 숲을 건강하게 지켜주는 고마운 새입니다.',
+    quiz: {
+      question: '박새의 깃털 무늬 중 수컷의 건강함과 매력을 나타내는 상징은 무엇일까요?',
+      options: ['가슴을 가로지르는 검은 넥타이 선의 폭', '날개 끝의 하얀 반점 개수', '부리의 노란색 밝기'],
+      answerIndex: 0,
+      explanation: '박새는 가슴 중앙의 검은 넥타이 줄무늬가 굵고 선명할수록 영양 상태가 좋고 서열이 높은 수컷으로 인정받습니다.'
+    }
+  },
+  {
+    id: 'creature_woodpecker',
+    name: '쇠딱따구리',
+    sciName: 'Yungipicus kizuki',
+    biome: 'mountain',
+    category: '조류',
+    rarity: 'uncommon',
+    endangered: '관심대상',
+    isInvasive: false,
+    icon: '🐦',
+    avatarBg: '#65a30d',
+    points: 30,
+    habitat: '수정산 둘레길 죽은 참나무 고목',
+    foodChain: '2차 소비자 (나무속 해충 애벌레 포식)',
+    weatherBoost: ['clear', 'cold'],
+    description: '우리나라 딱따구리 중 가장 작은 종으로, 참새만 한 크기입니다. 나무줄기를 나선형으로 빙빙 돌며 부리로 빠르게 나무를 쪼아 나무속 애벌레를 잡아먹습니다.',
+    quiz: {
+      question: '쇠딱따구리가 1초에 20번 이상 나무를 쪼아도 뇌진탕에 걸리지 않는 비결은 무엇일까요?',
+      options: ['뇌를 감싸는 뼈와 스펀지 구조의 완충 뼈, 긴 혀(설골) 덕분', '두개골이 강철처럼 단단해서', '나무를 쫄 때 눈을 감지 않아서'],
+      answerIndex: 0,
+      explanation: '딱따구리는 뇌를 감싸는 해면골 스펀지 뼈와 머리를 감싸 안는 긴 혀(설골)가 천연 충격 흡수재 역할을 합니다.'
+    }
+  },
+  {
+    id: 'creature_chipmunk',
+    name: '다람쥐',
+    sciName: 'Eutamias sibiricus',
+    biome: 'mountain',
+    category: '포유류',
+    rarity: 'common',
+    endangered: '관심대상',
+    isInvasive: false,
+    icon: '🐿️',
+    avatarBg: '#ea580c',
+    points: 20,
+    habitat: '구봉산 바위 틈, 도토리나무 숲',
+    foodChain: '1차 소비자 (도토리, 밤, 잣, 곤충)',
+    weatherBoost: ['clear'],
+    description: '등에 5개의 짙은 갈색 줄무늬가 있는 귀여운 포유류입니다. 볼주머니에 도토리를 가득 넣고 땅속에 묻어두었다가 잊어버린 도토리가 싹을 틔워 숲을 넓힙니다.',
+    quiz: {
+      question: '다람쥐가 땅속에 숨겨둔 도토리를 찾아먹지 못했을 때 일어나는 생태계의 긍정적 효과는?',
+      options: ['도토리가 싹을 틔워 새로운 참나무 숲으로 자라난다', '토양이 산성화되어 잡초가 죽는다', '도토리가 썩어 땅속 가스가 폭발한다'],
+      answerIndex: 0,
+      explanation: '다람쥐의 도토리 숨기기 습성은 숲이 다른 지역으로 씨앗을 퍼뜨리는 가장 중요한 천연 조림(숲 가꾸기) 활동입니다.'
+    }
+  },
+  {
+    id: 'creature_oak',
+    name: '상수리나무',
+    sciName: 'Quercus acutissima',
+    biome: 'mountain',
+    category: '식물',
+    rarity: 'common',
+    endangered: '관심대상',
+    isInvasive: false,
+    icon: '🌳',
+    avatarBg: '#15803d',
+    points: 15,
+    habitat: '수정산 양지바른 능선길',
+    foodChain: '생산자 (숲의 기초 산소 및 열매 공급)',
+    weatherBoost: ['clear', 'hot'],
+    description: '참나무과에 속하는 낙엽활엽교목으로, 굵고 맛있는 도토리가 열려 산림 야생동물의 든든한 겨울 식량창고가 되어줍니다. 동구 숲을 지탱하는 핵심 수종입니다.',
+    quiz: {
+      question: '임진왜란 당시 선조 임금의 수라상에 올렸다고 하여 붙여진 참나무의 이름은?',
+      options: ['상수리나무', '굴참나무', '떡갈나무'],
+      answerIndex: 0,
+      explanation: '임진왜란 피란길에 도토리묵을 수라상에 자주 올렸는데, 환도 후에도 그 맛을 잊지 못해 "항상 수라상에 올린다" 하여 상수리나무라 불리게 되었습니다.'
+    }
+  },
+  {
+    id: 'creature_lion_mushroom',
+    name: '노루궁뎅이버섯',
+    sciName: 'Hericium erinaceus',
+    biome: 'mountain',
+    category: '균류',
+    rarity: 'rare',
+    endangered: '희귀종',
+    isInvasive: false,
+    icon: '🍄',
+    avatarBg: '#ca8a04',
+    points: 60,
+    habitat: '구봉산 음습한 활엽수 고목',
+    foodChain: '분해자 (죽은 목재를 흙으로 환원)',
+    weatherBoost: ['rain'], // 비 올 때 스폰 300%
+    description: '하얗고 부드러운 털이 촘촘히 나 있어 마치 뛰어가던 노루의 엉덩이 털처럼 생긴 독특한 버섯입니다. 비가 많이 온 뒤 습도가 높은 고목에 자라납니다.',
+    quiz: {
+      question: '버섯과 같은 균류(Fungi)가 자연 생태계에서 맡고 있는 가장 중요한 역할은 무엇일까요?',
+      options: ['죽은 유기물과 고목을 분해하여 토양 영양분으로 되돌리는 분해자', '광합성을 통해 태양 에너지를 만드는 1차 생산자', '다른 초식동물을 사냥하는 상위 포식자'],
+      answerIndex: 0,
+      explanation: '버섯은 숲에 쓰러진 고목과 낙엽을 분해하여 다시 식물이 자랄 수 있는 기름진 흙으로 환원시키는 청소부 역할을 합니다.'
+    }
+  },
+
+  // ==================== 2. 하천·도심 바이옴 (초량천 & 도심) ====================
+  {
+    id: 'creature_grey_heron',
+    name: '왜가리',
+    sciName: 'Ardea cinerea',
+    biome: 'stream',
+    category: '조류',
+    rarity: 'uncommon',
+    endangered: '관심대상',
+    isInvasive: false,
+    icon: '🪶',
+    avatarBg: '#0284c7',
+    points: 35,
+    habitat: '초량천 생태하천 여울 및 친수데크',
+    foodChain: '3차 소비자 (물고기, 개구리, 뱀 포식)',
+    weatherBoost: ['clear', 'rain'],
+    description: '목이 길고 회색 깃털을 가진 대형 물새입니다. 물속에 가만히 서서 돌부처처럼 기다리다가 지나가는 버들치나 피라미를 번개처럼 낚아채는 인내심의 사냥꾼입니다.',
+    quiz: {
+      question: '왜가리가 물속에서 물고기를 사냥할 때 쓰는 주된 사냥 방식은 무엇일까요?',
+      options: ['물속에 미동도 없이 서 있다가 순간적으로 부리를 찔러 넣는 잠복 사냥', '물속으로 잠수하여 10분간 물고기를 쫓는 추격 사냥', '날개로 물을 세게 쳐서 물고기를 기절시키는 충격 사냥'],
+      answerIndex: 0,
+      explanation: '왜가리는 물가에서 동상처럼 꼼짝 않고 서서 물고기가 사정거리에 들어올 때까지 기다렸다가 단숨에 낚아챕니다.'
+    }
+  },
+  {
+    id: 'creature_korean_minnow',
+    name: '버들치',
+    sciName: 'Rhynchocypris oxycephalus',
+    biome: 'stream',
+    category: '어류',
+    rarity: 'common',
+    endangered: '환경지표종 (1급수)',
+    isInvasive: false,
+    icon: '🐟',
+    avatarBg: '#0891b2',
+    points: 25,
+    habitat: '초량천 상류 맑은 여울, 바위 그늘',
+    foodChain: '2차 소비자 (수생곤충, 부착조류)',
+    weatherBoost: ['rain'],
+    description: '초량천 복원 사업 후 돌아온 대표적인 1급수 환경지표종입니다. 등이 황갈색이고 몸 옆에 불규칙한 검은 반점이 있으며 찬물과 맑은 자갈 바닥을 좋아합니다.',
+    quiz: {
+      question: '초량천에 버들치가 서식한다는 사실이 의미하는 환경적 중요성은?',
+      options: ['하천 수질이 1급수 수준으로 매우 맑고 건강하게 복원되었다는 지표', '하천에 산소가 부족하여 오염되었다는 경고', '바닷물이 하천 상류까지 역류하고 있다는 신호'],
+      answerIndex: 0,
+      explanation: '버들치는 용존산소량이 풍부한 1급수 청정 수역에만 사는 대표적인 환경 지표종으로, 초량천의 수질 개선을 증명합니다.'
+    }
+  },
+  {
+    id: 'creature_tree_frog',
+    name: '청개구리',
+    sciName: 'Dryophytes japonicus',
+    biome: 'stream',
+    category: '양서류',
+    rarity: 'common',
+    endangered: '기후변화 지표종',
+    isInvasive: false,
+    icon: '🐸',
+    avatarBg: '#16a34a',
+    points: 25,
+    habitat: '초량천 물가 풀숲, 습지',
+    foodChain: '2차 소비자 (모기, 파리, 거미 포식)',
+    weatherBoost: ['rain'], // 비 올 때 300%
+    description: '비가 오기 전 기압이 낮아지고 습도가 높아지면 목의 울음주머니를 크게 부풀려 특유의 "개굴개굴" 소리를 냅니다. 발가락 끝에 둥근 흡반이 있어 벽도 잘 탑니다.',
+    quiz: {
+      question: '청개구리가 비가 내리기 직전에 유독 시끄럽게 우는 생물학적 이유는 무엇일까요?',
+      options: ['습도가 높아져 피부 호흡이 원활해지고 산란 본능이 자극되기 때문에', '비에 젖는 것이 무서워 피하라고 소리치는 것', '눈에 빗물이 들어가 앞이 안 보이기 때문에'],
+      answerIndex: 0,
+      explanation: '청개구리는 피부로 호흡하기 때문에 비 오기 전 공기 중 습도가 올라가면 호흡이 편안해져 활발하게 짝을 찾는 구애 소리를 냅니다.'
+    }
+  },
+  {
+    id: 'creature_plover',
+    name: '흰목물떼새',
+    sciName: 'Charadrius placidus',
+    biome: 'stream',
+    category: '조류',
+    rarity: 'epic',
+    endangered: '멸종위기야생생물 II급',
+    isInvasive: false,
+    icon: '🕊️',
+    avatarBg: '#0284c7',
+    points: 90,
+    habitat: '초량천 자갈밭 및 하구 모래톱',
+    foodChain: '2차 소비자 (모래 속 수생곤충, 연체동물)',
+    weatherBoost: ['clear'],
+    description: '목에 하얀 띠가 선명하게 둘러진 멸종위기 조류입니다. 하천의 자갈과 모래톱에 둥지를 틀기 때문에 하천 정비나 개발로 번식지가 줄어들어 귀한 손님이 되었습니다.',
+    quiz: {
+      question: '흰목물떼새가 천적이 둥지 근처로 다가왔을 때 알을 지키기 위해 펼치는 놀라운 연기는?',
+      options: ['날개가 부러진 척 파닥거리며 천적을 다른 곳으로 유인하는 의상 행동(Injury-feigning)', '죽은 척 기절하여 냄새를 풍기는 행동', '큰 소리로 맹금류 흉내를 내는 행동'],
+      answerIndex: 0,
+      explanation: '물떼새류는 천적이 오면 자신이 다친 척(의상 행동) 파닥거리며 천적의 주의를 둥지 반대편으로 유인한 뒤 재빨리 날아오릅니다.'
+    }
+  },
+  {
+    id: 'creature_cicada',
+    name: '참매미',
+    sciName: 'Hyalessa maculaticollis',
+    biome: 'stream',
+    category: '곤충',
+    rarity: 'common',
+    endangered: '관심대상',
+    isInvasive: false,
+    icon: '🦗',
+    avatarBg: '#854d0e',
+    points: 20,
+    habitat: '초량 이바구길 플라타너스, 벚나무',
+    foodChain: '1차 소비자 (나무 수액 흡즙)',
+    weatherBoost: ['hot'], // 25도 이상
+    description: '"맴-맴-맴-쓰르르" 하고 청량하게 우는 여름의 대표 곤충입니다. 땅속에서 애벌레로 약 3~5년을 살다가 여름철 지상으로 나와 단 몇 주 동안 번식을 위해 웁니다.',
+    quiz: {
+      question: '매미 소리 중에서 소리를 내어 우는 매미는 누구일까요?',
+      options: ['암컷을 부르기 위해 발음기관을 가진 수컷 매미만 운다', '암컷과 수컷 모두 똑같이 운다', '알을 낳기 전의 암컷 매미만 운다'],
+      answerIndex: 0,
+      explanation: '매미는 수컷만 배에 발음근과 공명실을 가지고 있어 소리를 내며, 암컷은 울지 못해 과거에 "벙어리 매미"로 불리기도 했습니다.'
+    }
+  },
+  {
+    id: 'creature_swallowtail',
+    name: '호랑나비',
+    sciName: 'Papilio xuthus',
+    biome: 'stream',
+    category: '곤충',
+    rarity: 'common',
+    endangered: '관심대상',
+    isInvasive: false,
+    icon: '🦋',
+    avatarBg: '#eab308',
+    points: 20,
+    habitat: '동구청 화단, 168계단 야생화 꽃밭',
+    foodChain: '1차 소비자 / 꽃가루 매개자 (수분 작용)',
+    weatherBoost: ['hot', 'clear'],
+    description: '노란 날개에 호랑이 무늬 같은 검은 줄무늬가 아름다운 대형 나비입니다. 꽃의 꿀을 빨며 꽃가루를 옮겨주어 도심 식물들의 번식을 돕는 소중한 매개곤충입니다.',
+    quiz: {
+      question: '호랑나비와 같은 꿀벌·나비가 도시 생태계에서 가장 중요한 생태계 서비스는 무엇일까요?',
+      options: ['꽃가루를 옮겨 열매를 맺게 하는 수분(꽃가루받이) 활동', '낙엽을 갉아먹어 거름으로 만드는 일', '도심의 먼지를 날개로 털어내는 일'],
+      answerIndex: 0,
+      explanation: '나비는 꿀을 찾는 과정에서 몸에 꽃가루를 묻혀 꽃과 꽃 사이를 이어주는 화분 매개자 역할을 수행합니다.'
+    }
+  },
+  {
+    id: 'creature_plantain',
+    name: '질경이',
+    sciName: 'Plantago asiatica',
+    biome: 'stream',
+    category: '식물',
+    rarity: 'common',
+    endangered: '관심대상',
+    isInvasive: false,
+    icon: '🌱',
+    avatarBg: '#166534',
+    points: 15,
+    habitat: '초량 보행자 도로 틈새, 흙길',
+    foodChain: '생산자 (도심 자생 약초)',
+    weatherBoost: ['clear', 'rain'],
+    description: '사람이나 달구지에 밟혀도 끈질기게 살아남아 "질긴 이"라는 뜻에서 이름 붙여졌습니다. 밟히는 충격을 견디는 질긴 잎맥과 신발 바닥에 씨앗을 붙여 퍼뜨리는 지혜를 가졌습니다.',
+    quiz: {
+      question: '질경이 씨앗이 사람들의 발길이 잦은 길가에 널리 퍼질 수 있는 똑똑한 생존 전략은?',
+      options: ['씨앗에 끈적한 점액질이 있어 젖었을 때 사람 신발이나 동물 발에 달라붙음', '바람에 민들레처럼 멀리 날아감', '새가 먹으면 1초 만에 배설됨'],
+      answerIndex: 0,
+      explanation: '질경이 씨앗은 물에 젖으면 젤리처럼 끈적끈적해져 지나가는 사람의 신발이나 자동차 타이어에 달라붙어 먼 곳까지 이동합니다.'
+    }
+  },
+  {
+    id: 'creature_pale_chub',
+    name: '피라미',
+    sciName: 'Zacco platypus',
+    biome: 'stream',
+    category: '어류',
+    rarity: 'common',
+    endangered: '관심대상',
+    isInvasive: false,
+    icon: '🐠',
+    avatarBg: '#06b6d4',
+    points: 20,
+    habitat: '초량천 중하류 유속이 완만한 곳',
+    foodChain: '2차 소비자 (부착조류, 곤충 유충)',
+    weatherBoost: ['clear'],
+    description: '산란기가 되면 수컷의 몸통이 화려한 무지갯빛 청록색과 붉은빛으로 물들며 "혼인색"을 띱니다. 초량천 물속에서 반짝이며 헤엄치는 활기찬 물고기입니다.',
+    quiz: {
+      question: '수컷 피라미가 번식기가 되었을 때 몸 색깔이 붉고 푸른 무지개색으로 변하는 현상을 무엇이라 부를까요?',
+      options: ['혼인색 (Nuptial coloration)', '위장색 (Camouflage)', '경고색 (Aposematism)'],
+      answerIndex: 0,
+      explanation: '수컷 물고기가 암컷을 유혹하고 다른 수컷과 영역 경쟁을 하기 위해 화려한 색으로 변하는 것을 혼인색이라고 부릅니다.'
+    }
+  },
+
+  // ==================== 3. 연안·하버 바이옴 (북항 친수공원) ====================
+  {
+    id: 'creature_gull',
+    name: '괭이갈매기',
+    sciName: 'Larus crassirostris',
+    biome: 'harbor',
+    category: '조류',
+    rarity: 'common',
+    endangered: '관심대상',
+    isInvasive: false,
+    icon: '🕊️',
+    avatarBg: '#2563eb',
+    points: 20,
+    habitat: '북항 친수공원 해안 난간, 방파제',
+    foodChain: '3차 소비자 (멸치, 꽁치, 갑각류 포식)',
+    weatherBoost: ['clear', 'wind'],
+    description: '울음소리가 고양이 울음소리("야옹~")와 닮았다 하여 괭이갈매기라 불립니다. 노란 부리 끝에 검은 띠와 붉은 점이 선명하여 다른 갈매기와 쉽게 구분됩니다.',
+    quiz: {
+      question: '괭이갈매기가 바닷물을 그대로 마셔도 탈수가 오지 않고 살아갈 수 있는 생물학적 이유는?',
+      options: ['콧등 위에 과도한 소금기를 걸러내 뿜는 소금샘(염류선)이 있어서', '위장에서 소금을 모두 금으로 바꾸기 때문에', '바닷물을 마시지 않고 공기 중 수증기만 마시기 때문에'],
+      answerIndex: 0,
+      explanation: '해양 조류인 괭이갈매기는 눈과 콧구멍 주위에 염분을 농축해 콧구멍으로 배출하는 특수 기관(소금샘)을 가지고 있습니다.'
+    }
+  },
+  {
+    id: 'creature_mullet',
+    name: '숭어',
+    sciName: 'Mugil cephalus',
+    biome: 'harbor',
+    category: '어류',
+    rarity: 'common',
+    endangered: '관심대상',
+    isInvasive: false,
+    icon: '🐟',
+    avatarBg: '#1d4ed8',
+    points: 25,
+    habitat: '북항 경관수로, 초량천 합류 하구',
+    foodChain: '2차 소비자 (유기물 찌꺼기, 갯벌 규조류)',
+    weatherBoost: ['clear', 'rain'],
+    description: '바닷물과 민물이 섞이는 기수역을 좋아하는 회유성 어종입니다. 수면 위로 1미터 가까이 솟구쳐 뛰어오르는 역동적인 도약 습성으로 북항 수변 산책로에서 자주 목격됩니다.',
+    quiz: {
+      question: '숭어가 물 밖으로 힘차게 점프(도약)하는 이유에 대해 학계에서 가장 유력하게 보는 가설은?',
+      options: ['아가미나 몸에 붙은 기생충을 털어내고 소화를 돕기 위해', '하늘을 날기 위한 비행 연습', '물 밖의 곤충을 입으로 사냥하기 위해'],
+      answerIndex: 0,
+      explanation: '숭어는 몸에 붙은 외부 기생충을 떼어내거나, 수면 충격으로 장운동을 활성화해 소화를 촉진하기 위해 점프하는 것으로 알려져 있습니다.'
+    }
+  },
+  {
+    id: 'creature_cormorant',
+    name: '민물가마우지',
+    sciName: 'Phalacrocorax carbo',
+    biome: 'harbor',
+    category: '조류',
+    rarity: 'uncommon',
+    endangered: '관심대상',
+    isInvasive: false,
+    icon: '🦅',
+    avatarBg: '#1e3a8a',
+    points: 35,
+    habitat: '북항 친수공원 데크 및 테트라포드',
+    foodChain: '3차 소비자 (물고기 전문 다이빙 포식자)',
+    weatherBoost: ['clear', 'cold'],
+    description: '온몸이 흑갈색을 띠는 잠수의 달인입니다. 깃털에 기름샘이 적어 물에 잘 젖기 때문에, 사냥이 끝나면 바위나 난간 위에 날개를 양옆으로 활짝 펼쳐 햇볕에 말립니다.',
+    quiz: {
+      question: '민물가마우지가 사냥 후 날개를 펼치고 가만히 서 있는 독특한 행동의 이유는?',
+      options: ['깃털이 물에 젖어 잠수가 수월한 대신, 사냥 후엔 날개를 햇볕과 바람에 말려야 해서', '다른 새들에게 영역을 과시하기 위해', '체온을 빼앗기지 않으려고 날개로 알을 품는 흉내'],
+      answerIndex: 0,
+      explanation: '가마우지는 물속 깊이 잠수하기 위해 깃털의 기름기를 줄여 부력을 낮췄기 때문에, 사냥 후 반드시 날개를 펴서 햇볕에 말려야 날 수 있습니다.'
+    }
+  },
+  {
+    id: 'creature_red_claw_crab',
+    name: '붉은발말똥게',
+    sciName: 'Chiromantes haematocheir',
+    biome: 'harbor',
+    category: '절지동물',
+    rarity: 'epic',
+    endangered: '멸종위기야생생물 II급',
+    isInvasive: false,
+    icon: '🦀',
+    avatarBg: '#b91c1c',
+    points: 95,
+    habitat: '북항 친수공원 갈대밭 기수역 둑방',
+    foodChain: '분해자 및 잡식성 (낙엽, 갯벌 유기물 청소)',
+    weatherBoost: ['rain', 'night'],
+    description: '집게발이 붉은색을 띠며, 위협을 느끼면 말똥 냄새 같은 독특한 방어 냄새를 풍긴다 하여 이름 붙은 귀한 멸종위기 갑각류입니다. 하구 연안 생태계의 청정 지표입니다.',
+    quiz: {
+      question: '붉은발말똥게가 바다와 하천이 만나는 기수역 생태계에서 수행하는 이로운 역할은?',
+      options: ['갈대밭 낙엽과 유기물을 섭취하여 갯벌을 정화하는 분해자 역할', '물고기를 공격하여 하천을 지배하는 역할', '바다 모래를 갉아먹어 바위를 부수는 역할'],
+      answerIndex: 0,
+      explanation: '붉은발말똥게는 갯벌의 죽은 식물체와 낙엽을 갉아먹어 미생물이 분해하기 쉽게 만들어 갯벌을 깨끗하게 정화합니다.'
+    }
+  },
+  {
+    id: 'creature_glasswort',
+    name: '퉁퉁마디(함초)',
+    sciName: 'Salicornia europaea',
+    biome: 'harbor',
+    category: '식물',
+    rarity: 'uncommon',
+    endangered: '염생식물',
+    isInvasive: false,
+    icon: '🌿',
+    avatarBg: '#059669',
+    points: 30,
+    habitat: '북항 갯벌 및 친수수로 염습지',
+    foodChain: '생산자 (바닷물 소금 흡수 및 갯벌 토양 고정)',
+    weatherBoost: ['clear', 'hot'],
+    description: '줄기에 마디가 많고 통통하여 "퉁퉁마디"라 부릅니다. 짠 바닷물 속에서도 소금을 흡수하여 줄기에 농축시키며 자라는 대표적인 갯벌 염생식물입니다. 가을에는 붉게 단풍이 듭니다.',
+    quiz: {
+      question: '퉁퉁마디(함초)처럼 염분이 높은 바닷가 갯벌에서 자라는 식물을 무엇이라 부를까요?',
+      options: ['염생식물 (Halophyte)', '기생식물 (Parasitic plant)', '식충식물 (Carnivorous plant)'],
+      answerIndex: 0,
+      explanation: '바닷가의 높은 염분 농도를 견디거나 오히려 염분을 배출·축적하며 살아갈 수 있도록 특화된 식물을 염생식물이라고 합니다.'
+    }
+  },
+  {
+    id: 'creature_mallard',
+    name: '청둥오리',
+    sciName: 'Anas platyrhynchos',
+    biome: 'harbor',
+    category: '조류',
+    rarity: 'common',
+    endangered: '관심대상',
+    isInvasive: false,
+    icon: '🦆',
+    avatarBg: '#047857',
+    points: 25,
+    habitat: '북항 친수수로 잔잔한 수면',
+    foodChain: '1차/2차 소비자 (수초, 수생곤충)',
+    weatherBoost: ['cold'], // 겨울철
+    description: '수컷의 머리가 광택 있는 짙은 에메랄드 녹색을 띠는 대표적인 겨울 철새입니다. 북항 친수공원 잔잔한 물가에서 물구나무서기를 하듯 꽁지를 치켜들고 물속 수초를 먹습니다.',
+    quiz: {
+      question: '청둥오리가 물속에 머리를 처박고 꽁지만 수면 위로 내놓는 독특한 잠수법을 무엇이라 할까요?',
+      options: ['수면채식 (Dabbling - 꽁지 세우기)', '심해 수중 다이빙', '공중 급강하 사냥'],
+      answerIndex: 0,
+      explanation: '청둥오리는 몸 전체를 깊이 잠그지 않고 머리만 물속에 넣어 바닥의 수초와 유기물을 먹는 수면성 오리류입니다.'
+    }
+  },
+
+  // ==================== 4. 생태계 교란종 / 외래종 (전 지역 스폰) ====================
+  // 포획 시 "정화 포인트" 획득!
+  {
+    id: 'creature_nutria',
+    name: '뉴트리아',
+    sciName: 'Myocastor coypus',
+    biome: 'stream', // 주로 습지/하천에 출현
+    category: '포유류',
+    rarity: 'disturb',
+    endangered: '생태계교란 야생생물 (환경부 지정)',
+    isInvasive: true,
+    icon: '🐀',
+    avatarBg: '#ef4444',
+    points: 50,
+    purifyPoints: 80,
+    habitat: '초량천 하류 및 북항 수로 습지',
+    foodChain: '교란자 / 대형 설치류 (수생식물 뿌리 전멸)',
+    weatherBoost: ['rain', 'night'],
+    description: '남미 원산의 거대한 쥐처럼 생긴 설치류입니다. 과거 사육용으로 도입되었다가 유출되어 습지의 갈대와 연꽃 뿌리를 마구 갉아먹어 수변 생태계를 파괴하고 제방을 훼손합니다.',
+    quiz: {
+      question: '뉴트리아가 한국의 하천 생태계를 심각하게 위협하는 주된 피해는 무엇일까요?',
+      options: ['수생식물 뿌리를 닥치는 대로 갉아먹어 습지를 황폐화하고 둑을 무너뜨린다', '사람을 보고 독을 뿜는다', '물속의 산소를 모두 흡수해 물고기를 질식시킨다'],
+      answerIndex: 0,
+      explanation: '뉴트리아는 식욕이 엄청나 하천의 수생식물 군락을 전멸시키며 땅굴을 파서 제방을 붕괴시키는 심각한 생태계 교란 동물입니다.'
+    }
+  },
+  {
+    id: 'creature_red_eared_turtle',
+    name: '붉은귀거북',
+    sciName: 'Trachemys scripta elegans',
+    biome: 'stream',
+    category: '파충류',
+    rarity: 'disturb',
+    endangered: '생태계교란 야생생물 (환경부 지정)',
+    isInvasive: true,
+    icon: '🐢',
+    avatarBg: '#dc2626',
+    points: 40,
+    purifyPoints: 60,
+    habitat: '초량천 연못 및 잔잔한 웅덩이',
+    foodChain: '교란자 / 잡식성 (토종 물고기, 토종 남생이 위협)',
+    weatherBoost: ['clear', 'hot'],
+    description: '눈 뒤쪽에 선명한 붉은 줄무늬가 있는 거북입니다. 애완용으로 수입되었다가 방생되어 토종 거북인 천연기념물 남생이의 서식지와 먹이를 빼앗는 주범입니다.',
+    quiz: {
+      question: '붉은귀거북과 경쟁에서 밀려 개체 수가 크게 줄어든 우리나라 토종 담수 거북은?',
+      options: ['남생이 (천연기념물 제453호)', '장수거북', '바다거북'],
+      answerIndex: 0,
+      explanation: '붉은귀거북은 번식력과 적응력이 뛰어나 우리 고유의 토종 거북인 남생이의 일광욕 장소와 먹이를 빼앗아 남생이를 멸종위기에 빠뜨렸습니다.'
+    }
+  },
+  {
+    id: 'creature_ragweed',
+    name: '돼지풀',
+    sciName: 'Ambrosia artemisiifolia',
+    biome: 'mountain',
+    category: '식물',
+    rarity: 'disturb',
+    endangered: '생태계교란 식물 (환경부 지정)',
+    isInvasive: true,
+    icon: '🌾',
+    avatarBg: '#b91c1c',
+    points: 30,
+    purifyPoints: 50,
+    habitat: '구봉산 둘레길 도로변, 빈터',
+    foodChain: '교란자 (토종 식물 생장 억제 물질 분비)',
+    weatherBoost: ['clear', 'wind'],
+    description: '북미 원산의 국화과 식물로, 가을철에 엄청난 양의 꽃가루를 날려 사람들에게 알레르기성 비염과 천식을 유발합니다. 다른 토종 식물이 자라지 못하게 화학물질을 뿜습니다.',
+    quiz: {
+      question: '돼지풀 꽃가루가 늦여름과 초가을 시민들에게 미치는 주된 건강 피해는?',
+      options: ['알레르기 비염, 결막염 및 천식 유발', '피부에 닿으면 화상을 입힘', '시력을 영구적으로 잃게 만듦'],
+      answerIndex: 0,
+      explanation: '돼지풀 꽃가루는 크기가 매우 미세하고 표면에 돌기가 있어 호흡기로 들어가면 심한 알레르기 비염과 꽃가루병(Hay fever)을 일으킵니다.'
+    }
+  },
+  {
+    id: 'creature_bur_cucumber',
+    name: '가시박',
+    sciName: 'Sicyos angulatus',
+    biome: 'mountain',
+    category: '식물',
+    rarity: 'disturb',
+    endangered: '생태계교란 식물 (환경부 지정)',
+    isInvasive: true,
+    icon: '🥒',
+    avatarBg: '#991b1b',
+    points: 35,
+    purifyPoints: 70,
+    habitat: '수정산 계곡변 및 수풀림',
+    foodChain: '교란자 (덩굴로 나무를 덮어 고사시킴)',
+    weatherBoost: ['hot', 'rain'],
+    description: '별 모양의 날카로운 가시가 달린 열매를 맺는 덩굴식물입니다. 하루에 30cm 이상 무서운 속도로 자라며 주변 나무를 융단처럼 뒤덮어 햇빛을 차단해 나무를 말려 죽입니다.',
+    quiz: {
+      question: '가시박이 숲속 큰 나무들을 질식사시키는 주된 방식은 무엇일까요?',
+      options: ['나무 위를 두껍게 뒤덮어 햇빛을 차단해 광합성을 못하게 만든다', '나무 밑동을 갉아 부러뜨린다', '나무 속에 독성 바이러스를 주입한다'],
+      answerIndex: 0,
+      explanation: '가시박은 엄청난 번식력으로 나무와 수풀 전체를 그물처럼 덮어버려 햇빛을 완전히 차단함으로써 토종 식생을 고사시킵니다.'
+    }
+  },
+  {
+    id: 'creature_planthopper',
+    name: '미국선녀벌레',
+    sciName: 'Metcalfa pruinosa',
+    biome: 'stream',
+    category: '곤충',
+    rarity: 'disturb',
+    endangered: '생태계교란 외래해충',
+    isInvasive: true,
+    icon: '🦗',
+    avatarBg: '#7f1d1d',
+    points: 25,
+    purifyPoints: 40,
+    habitat: '초량 도심 가로수 및 정원수',
+    foodChain: '교란자 (나무 수액 흡즙 및 그을음병 유발)',
+    weatherBoost: ['hot'],
+    description: '하얀 솜털 같은 왁스 분비물을 뒤집어쓴 외래 해충입니다. 과수와 가로수 수액을 빨아먹고 끈적한 분비물(감로)을 배출하여 잎을 까맣게 썩게 만드는 그을음병을 유발합니다.',
+    quiz: {
+      question: '미국선녀벌레가 배출한 끈적끈적한 분비물 때문에 나뭇잎에 발생하는 식물 병은?',
+      options: ['그을음병 (Sooty mold)', '탄저병', '뿌리혹병'],
+      answerIndex: 0,
+      explanation: '선녀벌레가 배출한 배설물(감로)에 곰팡이가 번식하면서 잎 표면이 검은 그을음처럼 덮여 광합성을 방해하는 그을음병이 생깁니다.'
+    }
+  },
+  {
+    id: 'creature_boss_shark',
+    name: '부캉이',
+    sciName: 'Carcharhinus sp.',
+    biome: 'harbor',
+    category: '전설 보스 흑상어',
+    rarity: 'epic',
+    endangered: '👑 전설 보스',
+    isInvasive: false,
+    isBoss: true,
+    icon: '🦈',
+    avatarBg: '#0ea5e9',
+    points: 200,
+    habitat: '부산항 북항 친수공원 인공수로',
+    foodChain: '최상위 포식자 (작은 물고기와 오징어를 포식)',
+    weatherBoost: ['clear', 'cloudy'],
+    description: '2026년 가을, 부산항 북항 친수공원 수로에 나타나 160만 명의 시민을 열광시키고 부산시 명예홍보대사가 된 전설의 흑상어입니다. 몸길이 약 3.5m로 동구 하버의 진짜 주인공입니다.',
+    quiz: {
+      question: '상어의 뼈는 무엇으로 이루어져 있을까요?',
+      options: ['말랑한 연골(물뼈)', '단단한 딱딱한 뼈', '단단한 나무'],
+      answerIndex: 0,
+      explanation: '상어는 약 4억 년 전부터 살아온 연골어류로, 뼈가 딱딱한 것이 아니라 말랑한 연골로 되어 있습니다. 그래서 몸이 유연하게 움직일 수 있습니다.'
+    }
+  },
+  {
+    id: 'creature_boss_boar',
+    name: '수정이',
+    sciName: 'Sus scrofa (King)',
+    biome: 'mountain',
+    category: '전설 보스 멧돼지',
+    rarity: 'epic',
+    endangered: '👑 전설 보스',
+    isInvasive: false,
+    isBoss: true,
+    icon: '🐗',
+    avatarBg: '#a16207',
+    points: 200,
+    habitat: '수정산 가족체육공원 편백나무 숲',
+    foodChain: '최상위 잡식 동물 (도토리와 뿌리, 곤충을 모두 먹음)',
+    weatherBoost: ['clear', 'cold'],
+    description: '수정산 315m 능선을 제일 높이 사수한다는 전설의 멧돼지 대장입니다. 부산 산지에서 실제로 멧돼지 출몰 소식이 자주 전해지는데, 수정이는 그중에서도 왕 중의 왕이라고 소문이 자자합니다.',
+    quiz: {
+      question: '멧돼지 새끼에게 줄무늬가 있는 이유는 무엇일까요?',
+      options: ['숲 속에서 보이지 않게 위장하기 위해', '예뻐 보이게 하기 위해', '어미를 찾기 쉽게 하기 위해'],
+      answerIndex: 0,
+      explanation: '멧돼지 새끼(망아지)의 갈색·흰색 줄무늬는 숲의 그늘과 낙엽 사이에 숨어 적에게 발견되지 않도록 하는 자연 위장입니다. 어른이 되면 줄무늬가 사라집니다.'
+    }
+  },
+  {
+    id: 'creature_boss_heron',
+    name: '초량이',
+    sciName: 'Ardea cinerea (King)',
+    biome: 'stream',
+    category: '전설 보스 왜가리',
+    rarity: 'epic',
+    endangered: '👑 전설 보스',
+    isInvasive: false,
+    isBoss: true,
+    icon: '🦅',
+    avatarBg: '#475569',
+    points: 200,
+    habitat: '초량천 생태하천 하류 바위터',
+    foodChain: '하천 최상위 포식자 (물고기를 한 번에 통째로 삼킴)',
+    weatherBoost: ['cloudy', 'rain'],
+    description: '초량천이 도심 하천으로 복원되면서 가장 먼저 돌아온 왕왜가리입니다. 한 장소에서 몇 시간씩 미동 없이 서서 물고기를 노리는 인내의 달인이자, 초량천 생태계의 최강자입니다.',
+    quiz: {
+      question: '왜가리는 물고기를 어떻게 잡아먹을까요?',
+      options: ['긴 부리로 찌른 뒤 통째로 삼킨다', '앞발로 잡아 뜯어 먹는다', '입으로 모래를 뿜는다'],
+      answerIndex: 0,
+      explanation: '왜가리는 한 시간 이상 미동 없이 기다리다가 긴 목을 날리듯 뻗어 부리로 물고기를 꿰뚠 뒤, 머리부터 통째로 삼킵니다.'
+    }
+  }
+];
+
+// 학생 탐사자 등급 칭호
+export const EXPLORER_RANKS = [
+  { level: 1, title: '새싹 탐사원', minExp: 0, icon: '🌱' },
+  { level: 2, title: '호기심 관찰자', minExp: 100, icon: '🔍' },
+  { level: 3, title: '초량천 지킴이', minExp: 250, icon: '💧' },
+  { level: 4, title: '수정산 탐험가', minExp: 450, icon: '🌲' },
+  { level: 5, title: '북항 바다 파수꾼', minExp: 700, icon: '🌊' },
+  { level: 6, title: '외래종 정화 특공대', minExp: 1050, icon: '🛡️' },
+  { level: 7, title: '동구 생태 연구원', minExp: 1500, icon: '📜' },
+  { level: 8, title: '생물다양성 수호자', minExp: 2100, icon: '⭐' },
+  { level: 9, title: '동구 에코 마스터', minExp: 2800, icon: '👑' },
+  { level: 10, title: '위대한 생태학자', minExp: 3800, icon: '🌟' }
+];
+
+// 탐사 퀘스트 (도전 과제)
+export const QUESTS_LIST = [
+  {
+    id: 'quest_first_catch',
+    title: '첫 번째 생태 기록',
+    description: '동구의 야생 동식물 중 아무 종이나 1마리 관찰 및 도감에 등록하세요.',
+    targetType: 'catch_count',
+    targetValue: 1,
+    rewardExp: 50,
+    rewardTitle: '생태 첫걸음'
+  },
+  {
+    id: 'quest_purify_disturb',
+    title: '동구 생태계 정화 작전',
+    description: '생태계를 위협하는 외래 교란종(뉴트리아, 붉은귀거북 등)을 2회 포획하세요.',
+    targetType: 'purify_count',
+    targetValue: 2,
+    rewardExp: 100,
+    rewardTitle: '환경 파수꾼'
+  },
+  {
+    id: 'quest_rainy_frog',
+    title: '비 오는 날의 합창',
+    description: '비 오는 날씨 또는 수생 환경에서 청개구리나 버들치를 1회 도감에 등록하세요.',
+    targetType: 'catch_species',
+    targetSpecies: ['creature_tree_frog', 'creature_korean_minnow'],
+    targetValue: 1,
+    rewardExp: 80,
+    rewardTitle: '빗방울 수색대'
+  },
+  {
+    id: 'quest_mountain_survey',
+    title: '구봉·수정산 식생 조사',
+    description: '마운틴 바이옴에 서식하는 산림 생물 3종을 수집하세요.',
+    targetType: 'biome_count',
+    targetBiome: 'mountain',
+    targetValue: 3,
+    rewardExp: 120,
+    rewardTitle: '녹색 숲의 벗'
+  },
+  {
+    id: 'quest_endangered_watch',
+    title: '귀한 손님, 멸종위기종 관찰',
+    description: '멸종위기 II급 생물(붉은배새매, 흰목물떼새, 붉은발말똥게 중 1종)을 포착하세요.',
+    targetType: 'endangered_count',
+    targetValue: 1,
+    rewardExp: 150,
+    rewardTitle: '희귀생물 수호천사'
+  },
+  {
+    id: 'quest_ecostop_spin',
+    title: '우리 동네 거점 순례',
+    description: '동구 생태 거점(Eco-Stop)을 방문하여 탐사 디스크를 3회 회전시키세요.',
+    targetType: 'stop_spin',
+    targetValue: 3,
+    rewardExp: 90,
+    rewardTitle: '동구 마실꾼'
+  }
+];
