@@ -1127,6 +1127,102 @@ body.weather-mode-night #map-container {
   color: #94a3b8;
 }
 
+/* 새 문제 종류: 그림 · 빈칸 · 순서 · 모두 고르기 */
+.quiz-picture {
+  font-size: 64px;
+  line-height: 1;
+  text-align: center;
+  margin-top: 10px;
+}
+
+.quiz-blank {
+  display: inline-block;
+  min-width: 56px;
+  margin: 0 4px;
+  border-bottom: 2px dashed #6ee7b7;
+  color: #6ee7b7;
+  text-align: center;
+  font-weight: 900;
+}
+
+.quiz-order-grid,
+.quiz-multi-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.quiz-order-slots {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 10px;
+  border-radius: 14px;
+  border: 1px dashed rgba(255, 255, 255, 0.25);
+  min-height: 44px;
+}
+
+.quiz-order-slot {
+  font-size: 12px;
+  font-weight: 700;
+  padding: 5px 10px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text-muted);
+}
+
+.quiz-order-slot.filled {
+  background: rgba(16, 185, 129, 0.25);
+  color: #fff;
+}
+
+.quiz-option-btn.selected {
+  background: rgba(59, 130, 246, 0.35);
+  border-color: #3b82f6;
+}
+
+.quiz-option-btn:disabled {
+  cursor: default;
+}
+
+.quiz-multi-hint {
+  font-size: 11px;
+  color: #93c5fd;
+}
+
+.quiz-submit-row {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.quiz-submit-btn {
+  padding: 9px 18px;
+  border: none;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #10b981, #06b6d4);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.quiz-submit-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.quiz-undo-btn {
+  padding: 9px 14px;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 12px;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
 /* 생태 탐구 노트 */
 .learning-note {
   width: 100%;

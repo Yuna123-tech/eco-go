@@ -280,7 +280,113 @@ const BANK = [
     '<b>따오기</b>는 1979년 이후 우리나라 야생에서 볼 수 없었지만, 복원 사업으로 2019년부터 우포늪에서 자연으로 돌아가고 있어요.')
 ];
 
-export const QUESTION_BANK = BANK.map((item, i) => ({ id: `bank_${item.unit}_${i}`, ...item }));
+// ✏️ 빈칸 채우기
+function BLANK(unit, q, answer, wrongs, explain) {
+  return { unit, type: 'blank', q, answer, wrongs, explain };
+}
+const BLANKS = [
+  BLANK('4-1-1', '자석에서 철로 된 물체가 가장 많이 붙는 부분을 자석의 <span class="quiz-blank">?</span>(이)라고 해요.', '극', ['면', '심', '줄'],
+    '철로 된 물체가 많이 붙는 자석의 양쪽 끝을 <b>극</b>이라고 해요. N극과 S극이 있어요.'),
+  BLANK('4-1-2', '젖은 빨래가 마르는 것처럼, 물의 표면에서 물이 수증기로 변하는 현상을 <span class="quiz-blank">?</span>(이)라고 해요.', '증발', ['응결', '끓음', '퇴적'],
+    '물 <b>표면</b>에서 물이 수증기로 변하는 현상이 <b>증발</b>이에요.'),
+  BLANK('4-1-3', '흐르는 물이 땅을 깎는 것은 <span class="quiz-blank">?</span>, 옮기는 것은 운반, 쌓는 것은 퇴적 작용이에요.', '침식', ['증발', '응결', '분해'],
+    '흐르는 물은 땅을 깎고(<b>침식</b>), 옮기고(운반), 쌓아요(퇴적).'),
+  BLANK('4-1-4', '버섯과 곰팡이는 씨가 아니라 <span class="quiz-blank">?</span>(으)로 번식해요.', '포자', ['알', '뿌리', '새끼'],
+    '균류인 버섯과 곰팡이는 <b>포자</b>로 번식해요.'),
+  BLANK('4-2-1', '별은 스스로 빛을 내지만, 행성은 <span class="quiz-blank">?</span>의 빛을 반사해서 밝게 보여요.', '태양', ['달', '북극성', '지구'],
+    '행성은 스스로 빛을 내지 못하고 <b>태양</b>의 빛을 반사해요.'),
+  BLANK('4-2-2', '여러 먹이 사슬이 그물처럼 복잡하게 얽혀 있는 것을 먹이 <span class="quiz-blank">?</span>(이)라고 해요.', '그물', ['탑', '계단', '바다'],
+    '먹이 사슬이 서로 얽혀 그물처럼 연결된 것을 <b>먹이 그물</b>이라고 해요.'),
+  BLANK('4-2-3', '석회수에 넣으면 석회수를 뿌옇게 흐리게 만드는 기체는 <span class="quiz-blank">?</span>예요.', '이산화 탄소', ['산소', '질소', '헬륨'],
+    '<b>이산화 탄소</b>는 석회수를 뿌옇게 만들어요.'),
+  BLANK('4-2-4', '어떤 지역에서 오랜 기간에 걸쳐 나타나는 평균적인 날씨를 <span class="quiz-blank">?</span>(이)라고 해요.', '기후', ['날씨', '기온', '계절'],
+    '그날그날의 상태는 날씨, 오랜 기간의 평균적인 날씨는 <b>기후</b>예요.'),
+  BLANK('past', '옛날 생물의 몸체나 흔적이 암석이나 지층 속에 남아 있는 것을 <span class="quiz-blank">?</span>(이)라고 해요.', '화석', ['광물', '보석', '모래'],
+    '옛날 생물의 뼈, 껍데기, 발자국 같은 것이 남은 것을 <b>화석</b>이라고 해요.')
+];
+
+// 🔢 순서 맞추기 (items는 정답 순서)
+function ORDER(unit, q, items, explain) {
+  return { unit, type: 'order', q, items, answer: items.join(' → '), explain };
+}
+const ORDERS = [
+  ORDER('4-2-1', '태양에서 <b>가까운 행성부터</b> 차례대로 누르세요.', ['수성', '금성', '지구', '화성'],
+    '태양에서 가까운 순서는 수성 → 금성 → 지구 → 화성 → 목성 → 토성 → 천왕성 → 해왕성이에요.'),
+  ORDER('4-2-1', '태양에서 가까운 순서대로 누르세요.', ['목성', '토성', '천왕성', '해왕성'],
+    '태양계 바깥쪽 행성은 목성 → 토성 → 천왕성 → 해왕성 순서예요.'),
+  ORDER('4-2-1', '크기가 <b>큰 행성부터</b> 차례대로 누르세요.', ['목성', '토성', '지구', '수성'],
+    '태양계에서 가장 큰 행성은 목성, 가장 작은 행성은 수성이에요.'),
+  ORDER('4-2-2', '<b>먹히는 생물 → 먹는 생물</b> 순서로 먹이 사슬을 완성하세요.', ['벼', '메뚜기', '개구리', '뱀'],
+    '먹이 사슬은 생산자(벼)에서 시작해 먹히는 생물 → 먹는 생물 순서로 이어져요.'),
+  ORDER('4-2-2', '바다의 먹이 사슬을 <b>먹히는 생물 → 먹는 생물</b> 순서로 완성하세요.', ['식물성 플랑크톤', '동물성 플랑크톤', '작은 물고기', '큰 물고기'],
+    '바다에서는 햇빛으로 양분을 만드는 식물성 플랑크톤이 생산자예요.'),
+  ORDER('4-2-2', '<b>먹히는 생물 → 먹는 생물</b> 순서로 먹이 사슬을 완성하세요.', ['풀', '토끼', '여우'],
+    '풀(생산자)을 토끼(1차 소비자)가 먹고, 토끼를 여우가 먹어요.'),
+  ORDER('4-1-2', '얼음을 계속 가열할 때 물이 변하는 순서대로 누르세요.', ['얼음', '물', '수증기'],
+    '얼음(고체)이 녹아 물(액체)이 되고, 물이 끓거나 증발해 수증기(기체)가 돼요.'),
+  ORDER('4-1-3', '흙이 만들어지는 과정을 순서대로 누르세요.', ['큰 바위', '작은 돌', '모래', '흙'],
+    '바위가 오랜 시간 동안 부서지고 작아져서 흙이 만들어져요.'),
+  ORDER('4-1-3', '강의 <b>상류에서 하류</b>로 갈 때 많이 볼 수 있는 것을 순서대로 누르세요.', ['큰 바위', '자갈', '모래', '진흙'],
+    '상류는 경사가 급해 큰 바위가 많고, 하류로 갈수록 고운 모래와 진흙이 쌓여요.'),
+  ORDER('past', '<b>오래된 것부터</b> 차례대로 누르세요.', ['삼엽충이 살던 때', '공룡이 살던 때', '털매머드가 살던 빙하기', '따오기를 복원하는 오늘날'],
+    '삼엽충은 고생대(약 5억 년 전~), 공룡은 중생대, 털매머드는 빙하기(약 1만 년 전까지)에 살았어요.')
+];
+
+// ✅ 모두 고르기 (출제할 때마다 보기 일부를 무작위로 뽑습니다)
+function MULTI(id, unit, q, correctPool, wrongPool, explain) {
+  return { templateId: id, unit, type: 'multi', q, correctPool, wrongPool, explain };
+}
+const MULTIS = [
+  MULTI('biotic', '4-2-2', '<b>생물 요소</b>를 모두 고르세요.', ['다람쥐', '버섯', '소나무', '참새', '곰팡이', '이끼', '미역'], ['햇빛', '물', '공기', '흙', '돌', '바람'],
+    '살아 있는 것은 <b>생물 요소</b>, 햇빛·물·공기·흙처럼 살아 있지 않은 것은 <b>비생물 요소</b>예요.'),
+  MULTI('abiotic', '4-2-2', '<b>비생물 요소</b>를 모두 고르세요.', ['햇빛', '물', '공기', '흙', '돌', '온도'], ['다람쥐', '버섯', '소나무', '참새', '세균'],
+    '햇빛, 물, 공기, 흙, 돌, 온도는 살아 있지 않은 <b>비생물 요소</b>예요.'),
+  MULTI('producer', '4-2-2', '스스로 양분을 만드는 <b>생산자</b>를 모두 고르세요.', ['벼', '소나무', '질경이', '상수리나무', '퉁퉁마디'], ['메뚜기', '개구리', '다람쥐', '버섯', '왜가리'],
+    '식물은 햇빛을 이용해 스스로 양분을 만드는 <b>생산자</b>예요. 버섯은 분해자예요.'),
+  MULTI('decomposer', '4-2-2', '<b>분해자</b>를 모두 고르세요.', ['버섯', '곰팡이', '세균'], ['소나무', '메뚜기', '개구리', '벼', '참새'],
+    '버섯, 곰팡이, 세균은 죽은 생물이나 배출물을 분해하는 <b>분해자</b>예요.'),
+  MULTI('magnet', '4-1-1', '<b>자석에 붙는</b> 물체를 모두 고르세요.', ['철 클립', '철못', '철로 된 집게'], ['나무젓가락', '플라스틱 자', '유리구슬', '고무지우개', '알루미늄 캔'],
+    '자석은 <b>철</b>로 된 물체를 끌어당겨요. 알루미늄은 금속이지만 자석에 붙지 않아요.'),
+  MULTI('fungi', '4-1-4', '<b>균류</b>를 모두 고르세요.', ['버섯', '곰팡이'], ['짚신벌레', '해캄', '세균', '이끼'],
+    '버섯과 곰팡이는 <b>균류</b>예요. 짚신벌레와 해캄은 원생생물이고, 세균은 균류와 다른 무리예요.'),
+  MULTI('gas', '4-2-3', '<b>기체</b>를 모두 고르세요.', ['산소', '이산화 탄소', '질소', '헬륨'], ['얼음', '소금', '철', '모래'],
+    '산소, 이산화 탄소, 질소, 헬륨은 모두 기체예요.'),
+  MULTI('planet', '4-2-1', '<b>태양계 행성</b>을 모두 고르세요.', ['수성', '금성', '화성', '목성', '토성'], ['태양', '달', '북극성'],
+    '태양은 스스로 빛을 내는 별, 달은 지구 주위를 도는 위성, 북극성은 별이에요.'),
+  MULTI('climate', '4-2-4', '기후 변화를 줄이는 <b>알맞은 실천</b>을 모두 고르세요.', ['가까운 거리는 걷기', '쓰지 않는 전등 끄기', '일회용품 줄이기', '나무 심고 가꾸기'], ['가까운 거리도 자동차 타기', '음식 많이 남기기', '아무도 없는 방에 냉방기 켜 두기'],
+    '에너지를 아끼고 쓰레기를 줄이는 것은 이산화 탄소를 줄이는 실천이에요.'),
+  MULTI('fossil', 'past', '<b>화석</b>이라고 할 수 있는 것을 모두 고르세요.', ['지층 속 공룡 발자국', '암석 속 삼엽충', '바위에 찍힌 고사리 잎 모양'], ['어제 찍힌 강아지 발자국', '오늘 주운 조개껍데기', '새로 만든 공룡 모형'],
+    '화석은 아주 오랜 옛날 생물의 몸체나 흔적이 암석이나 지층 속에 남은 거예요.')
+];
+
+function makeMulti(t) {
+  const correct = shuffle(t.correctPool).slice(0, 2 + Math.floor(Math.random() * Math.min(2, t.correctPool.length - 1)));
+  const wrong = shuffle(t.wrongPool).slice(0, 5 - correct.length);
+  return { ...t, id: `multi_${t.templateId}`, correct, answer: correct.join(', '), choices: shuffle([...correct, ...wrong]) };
+}
+
+const STATIC_BANK = BANK.concat(BLANKS, ORDERS);
+export const QUESTION_BANK = STATIC_BANK.map((item, i) => ({ id: `bank_${item.unit}_${i}`, ...item }))
+  .concat(MULTIS.map(t => ({ ...t, id: `multi_${t.templateId}` })));
+
+// 출제할 때 쓰는 문제 목록 (모두 고르기 문제는 매번 보기를 새로 뽑습니다)
+function bankForEncounter() {
+  return QUESTION_BANK.map(q => (q.type === 'multi' ? makeMulti(q) : q));
+}
+
+export const QUESTION_TYPES = {
+  mcq: '📝 객관식',
+  ox: '⭕ OX',
+  blank: '✏️ 빈칸 채우기',
+  order: '🔢 순서 맞추기',
+  multi: '✅ 모두 고르기',
+  picture: '🖼️ 그림 보고 맞히기'
+};
+
+export function questionType(q) {
+  if (q.type) return q.type;
+  return q.fixedOrder ? 'ox' : 'mcq';
+}
 
 // 바이옴별 비생물 요소 / 생물 요소 예시 (생물·비생물 요소 문제 자동 생성용)
 const ABIOTIC = ['햇빛', '물', '공기', '흙', '돌', '온도', '바람'];
@@ -321,9 +427,28 @@ export function shuffle(arr) {
   return a;
 }
 
-// 만난 생물에 대한 문제들 (도감 퀴즈 + 생물·비생물 요소 + 생산자·소비자·분해자 + 옛날 생물)
-export function creatureQuestions(creature) {
+// 만난 생물에 대한 문제들 (도감 퀴즈 + 그림 + 생물·비생물 요소 + 생산자·소비자·분해자 + 옛날 생물)
+export function creatureQuestions(creature, allCreatures = []) {
   const list = [];
+
+  // 그림 문제: 지금 만난 생물은 이름이 화면에 보이므로, 그림이 겹치지 않는 다른 생물을 보여 줍니다.
+  const iconCount = {};
+  allCreatures.forEach(c => { iconCount[c.icon] = (iconCount[c.icon] || 0) + 1; });
+  const pictureable = shuffle(allCreatures.filter(c => c.id !== creature.id && !c.isBoss && iconCount[c.icon] === 1));
+  if (pictureable.length >= 4) {
+    const [target, ...rest] = pictureable;
+    list.push({
+      id: `picture_${target.id}`,
+      unit: 'creature',
+      type: 'picture',
+      picture: target.icon,
+      q: '그림 속 생물의 이름은 무엇일까요?',
+      answer: target.name,
+      wrongs: rest.slice(0, 3).map(c => c.name),
+      explain: `정답: <b>${target.name}</b> — ${target.description}`
+    });
+  }
+
   const unit = creature.isPast ? 'past' : '4-2-2';
   const biomeKey = creature.isPast ? 'past' : creature.biome;
 
@@ -392,28 +517,39 @@ export function creatureQuestions(creature) {
  * @param enabledUnits 선생님이 고른 단원 id 배열
  * @param recentIds 최근에 낸 문제 id (반복 줄이기)
  */
-export function buildEncounterQuestions(creature, count, enabledUnits, recentIds = []) {
+export function buildEncounterQuestions(creature, count, enabledUnits, recentIds = [], allCreatures = []) {
   const units = enabledUnits && enabledUnits.length ? enabledUnits : Object.keys(QUIZ_UNITS);
   const recent = new Set(recentIds);
   const creatureUnitOk = q => q.unit === 'creature' || units.includes(q.unit) || (creature.isPast && q.unit === 'past');
-  const creaturePool = shuffle(creatureQuestions(creature).filter(creatureUnitOk));
-  let bankPool = QUESTION_BANK.filter(q => units.includes(q.unit));
+  const creaturePool = shuffle(creatureQuestions(creature, allCreatures).filter(creatureUnitOk));
+  let bankPool = bankForEncounter().filter(q => units.includes(q.unit));
   const fresh = bankPool.filter(q => !recent.has(q.id));
   if (fresh.length >= count) bankPool = fresh;
   bankPool = shuffle(bankPool);
 
+  // 문제 종류가 고르게 나오도록: 종류를 먼저 고르고(바로 앞과 다른 종류 우선), 그 종류에서 문제를 뽑습니다.
+  const takeVaried = (pool, lastType) => {
+    const types = [...new Set(pool.map(questionType))];
+    const others = types.filter(t => t !== lastType);
+    const type = pick(others.length ? others : types);
+    const idx = pool.findIndex(q => questionType(q) === type);
+    return pool.splice(idx, 1)[0];
+  };
+
   const picked = [];
   // 첫 문제는 만난 생물과 관련된 문제를 우선 (한 문제짜리 조우는 절반 확률)
   const creatureFirst = creaturePool.length && (count > 1 || Math.random() < 0.5);
-  if (creatureFirst) picked.push(creaturePool.shift());
+  if (creatureFirst) picked.push(takeVaried(creaturePool, null));
   while (picked.length < count && (bankPool.length || creaturePool.length)) {
     const fromBank = bankPool.length && (!creaturePool.length || Math.random() < 0.75);
-    picked.push(fromBank ? bankPool.shift() : creaturePool.shift());
+    const lastType = picked.length ? questionType(picked[picked.length - 1]) : null;
+    picked.push(takeVaried(fromBank ? bankPool : creaturePool, lastType));
   }
-  return picked.map(q => ({
-    ...q,
-    choices: q.fixedOrder ? [OX_TRUE, OX_FALSE] : shuffle([q.answer, ...q.wrongs.slice(0, 3)])
-  }));
+  return picked.map(q => {
+    if (q.type === 'order') return { ...q, choices: shuffle(q.items) };
+    if (q.type === 'multi') return q;
+    return { ...q, choices: q.fixedOrder ? [OX_TRUE, OX_FALSE] : shuffle([q.answer, ...q.wrongs.slice(0, 3)]) };
+  });
 }
 
 export function unitLabel(unitId) {

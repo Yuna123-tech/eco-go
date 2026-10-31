@@ -6,7 +6,8 @@
 
 import { sound } from './audio.js';
 import { QUIZ_STORAGE_KEY } from './constants.js';
-import { QUIZ_UNITS, buildEncounterQuestions, unitLabel } from './questions.js';
+import { QUIZ_UNITS, QUESTION_TYPES, buildEncounterQuestions, questionType, unitLabel } from './questions.js';
+import { CREATURES_DATA } from './data.js';
 import { renderLearningNote } from './learning.js';
 
 const RECENT_LIMIT = 40;
@@ -61,7 +62,7 @@ export class MiniGameEngine {
     document.getElementById('encounter-rarity-badge').innerText = creature.isInvasive ? '⚠️ 생태계 교란종' : creature.endangered;
 
     const rule = captureRule(creature);
-    const questions = buildEncounterQuestions(creature, rule.need + rule.hearts, loadEnabledUnits(), this.recentIds);
+    const questions = buildEncounterQuestions(creature, rule.need + rule.hearts, loadEnabledUnits(), this.recentIds, CREATURES_DATA);
     this.state = { ...rule, maxHearts: rule.hearts, progress: 0, wrong: 0, index: 0, questions, answered: false, finished: false };
 
     const stage = document.getElementById('capture-stage');
@@ -95,11 +96,17 @@ export class MiniGameEngine {
       if (!this.state || this.state.finished) return;
       const modal = document.getElementById('encounter-modal');
       if (!modal || modal.classList.contains('hidden')) return;
-      if (!this.state.answered && /^[1-4]$/.test(e.key)) {
+      if (!this.state.answered && /^[1-9]$/.test(e.key)) {
         const btn = document.querySelectorAll('#quiz-options-container .quiz-option-btn')[Number(e.key) - 1];
         if (btn) {
           e.preventDefault();
           btn.click();
+        }
+      } else if (!this.state.answered && e.key === 'Enter') {
+        const submit = document.getElementById('quiz-submit-btn');
+        if (submit && !submit.disabled) {
+          e.preventDefault();
+          submit.click();
         }
       } else if (this.state.answered && e.key === 'Enter') {
         const next = document.getElementById('quiz-next-btn');
@@ -150,20 +157,128 @@ export class MiniGameEngine {
     s.answered = false;
     this.rememberQuestion(q.id);
 
-    if (unitEl) unitEl.innerText = unitLabel(q.unit);
+    const type = questionType(q);
+    if (unitEl) unitEl.innerText = `${unitLabel(q.unit)}  ·  ${QUESTION_TYPES[type]}`;
     questionEl.innerHTML = `<span class="quiz-q-num">Q${s.progress + s.wrong + 1}.</span> ${q.q}`;
+    if (type === 'picture') {
+      const pic = document.createElement('div');
+      pic.className = 'quiz-picture';
+      pic.textContent = q.picture;
+      questionEl.appendChild(pic);
+    }
     optionsEl.innerHTML = '';
+    optionsEl.className = `quiz-options-container type-${type}`;
     feedbackEl.classList.add('hidden');
     feedbackEl.innerHTML = '';
 
-    q.choices.forEach((optText, idx) => {
-      const btn = document.createElement('button');
-      btn.className = 'quiz-option-btn';
-      btn.innerHTML = `<span class="quiz-opt-num">${idx + 1}</span> <span></span>`;
-      btn.lastElementChild.textContent = optText;
-      btn.onclick = () => this.handleAnswer(optText, btn);
-      optionsEl.appendChild(btn);
+    if (type === 'order') this.renderOrder(q, optionsEl);
+    else if (type === 'multi') this.renderMulti(q, optionsEl);
+    else {
+      q.choices.forEach((optText, idx) => {
+        const btn = this.makeOptionButton(optText, idx);
+        btn.onclick = () => this.handleAnswer(optText, btn);
+        optionsEl.appendChild(btn);
+      });
+    }
+  }
+
+  makeOptionButton(text, idx) {
+    const btn = document.createElement('button');
+    btn.className = 'quiz-option-btn';
+    btn.innerHTML = `<span class="quiz-opt-num">${idx + 1}</span> <span></span>`;
+    btn.lastElementChild.textContent = text;
+    btn.dataset.value = text;
+    return btn;
+  }
+
+  makeSubmitButton(label, onSubmit) {
+    const submit = document.createElement('button');
+    submit.id = 'quiz-submit-btn';
+    submit.className = 'quiz-submit-btn';
+    submit.textContent = label;
+    submit.disabled = true;
+    submit.onclick = onSubmit;
+    return submit;
+  }
+
+  // 🔢 순서 맞추기: 보기를 차례대로 누르면 위쪽 칸에 쌓입니다.
+  renderOrder(q, optionsEl) {
+    const picked = [];
+    const slots = document.createElement('div');
+    slots.className = 'quiz-order-slots';
+    const grid = document.createElement('div');
+    grid.className = 'quiz-order-grid';
+    const actions = document.createElement('div');
+    actions.className = 'quiz-submit-row';
+    const submit = this.makeSubmitButton('확인 (Enter)', () => this.resolveAnswer(picked.join(' → ') === q.answer, picked.join(' → ')));
+    const undo = document.createElement('button');
+    undo.className = 'quiz-undo-btn';
+    undo.textContent = '↩ 하나 지우기';
+
+    const draw = () => {
+      slots.innerHTML = '';
+      q.items.forEach((_, i) => {
+        const slot = document.createElement('span');
+        slot.className = `quiz-order-slot${picked[i] ? ' filled' : ''}`;
+        slot.textContent = picked[i] ? `${i + 1}. ${picked[i]}` : `${i + 1}`;
+        slots.appendChild(slot);
+      });
+      grid.querySelectorAll('.quiz-option-btn').forEach(b => { b.disabled = picked.includes(b.dataset.value); });
+      submit.disabled = picked.length !== q.items.length;
+      undo.disabled = !picked.length;
+    };
+    q.choices.forEach((text, idx) => {
+      const btn = this.makeOptionButton(text, idx);
+      btn.onclick = () => {
+        if (this.state.answered || picked.includes(text)) return;
+        sound.playClick();
+        picked.push(text);
+        draw();
+      };
+      grid.appendChild(btn);
     });
+    undo.onclick = () => {
+      if (this.state.answered) return;
+      picked.pop();
+      draw();
+    };
+    actions.append(undo, submit);
+    optionsEl.append(slots, grid, actions);
+    draw();
+  }
+
+  // ✅ 모두 고르기: 보기를 눌러 켜고 끈 뒤 확인합니다.
+  renderMulti(q, optionsEl) {
+    const selected = new Set();
+    const grid = document.createElement('div');
+    grid.className = 'quiz-multi-grid';
+    const actions = document.createElement('div');
+    actions.className = 'quiz-submit-row';
+    const submit = this.makeSubmitButton('확인 (Enter)', () => {
+      const ok = selected.size === q.correct.length && q.correct.every(c => selected.has(c));
+      grid.querySelectorAll('.quiz-option-btn').forEach(b => {
+        if (q.correct.includes(b.dataset.value)) b.classList.add('correct');
+        else if (selected.has(b.dataset.value)) b.classList.add('wrong');
+      });
+      this.resolveAnswer(ok, q.answer);
+    });
+    q.choices.forEach((text, idx) => {
+      const btn = this.makeOptionButton(text, idx);
+      btn.onclick = () => {
+        if (this.state.answered) return;
+        sound.playClick();
+        if (selected.has(text)) selected.delete(text);
+        else selected.add(text);
+        btn.classList.toggle('selected', selected.has(text));
+        submit.disabled = selected.size === 0;
+      };
+      grid.appendChild(btn);
+    });
+    const hint = document.createElement('div');
+    hint.className = 'quiz-multi-hint';
+    hint.textContent = '정답이 여러 개예요. 알맞은 것을 모두 눌러 고른 뒤 확인을 누르세요.';
+    actions.appendChild(submit);
+    optionsEl.append(hint, grid, actions);
   }
 
   rememberQuestion(id) {
@@ -173,17 +288,23 @@ export class MiniGameEngine {
   }
 
   handleAnswer(selected, buttonEl) {
+    if (this.state.answered || this.state.finished) return;
+    const q = this.state.questions[this.state.index];
+    const isCorrect = selected === q.answer;
+    document.querySelectorAll('#quiz-options-container .quiz-option-btn').forEach(b => {
+      if (b.dataset.value === q.answer) b.classList.add('correct');
+    });
+    if (!isCorrect) buttonEl.classList.add('wrong');
+    this.resolveAnswer(isCorrect, selected);
+  }
+
+  // 모든 문제 종류가 정답/오답 판정 뒤 공통으로 거치는 단계
+  resolveAnswer(isCorrect) {
     const s = this.state;
     if (s.answered || s.finished) return;
     s.answered = true;
     const q = s.questions[s.index];
-    const isCorrect = selected === q.answer;
-
-    document.querySelectorAll('#quiz-options-container .quiz-option-btn').forEach(b => {
-      b.disabled = true;
-      if (b.lastElementChild.textContent === q.answer) b.classList.add('correct');
-    });
-    if (!isCorrect) buttonEl.classList.add('wrong');
+    document.querySelectorAll('#quiz-options-container button').forEach(b => { b.disabled = true; });
     if (this.onAnswer) this.onAnswer(isCorrect, q);
 
     const creatureEl = document.getElementById('capture-creature-icon');
