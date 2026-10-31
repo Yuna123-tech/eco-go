@@ -1566,19 +1566,19 @@
     },
     {
       level: 3,
-      title: "초량천 지킴이",
+      title: "꼬마 생태 지킴이",
       minExp: 250,
       icon: "💧"
     },
     {
       level: 4,
-      title: "수정산 탐험가",
+      title: "구역 개척자",
       minExp: 450,
       icon: "🌲"
     },
     {
       level: 5,
-      title: "북항 바다 파수꾼",
+      title: "생태 파수꾼",
       minExp: 700,
       icon: "🌊"
     },
@@ -2249,6 +2249,7 @@
       }
     }
     renderBiomes() {
+      this.biomeShapes = {};
       Object.values(BIOMES).forEach((biome) => {
         const circle = L.circle([biome.center.lat, biome.center.lng], {
           radius: biome.radius,
@@ -2275,6 +2276,22 @@
           interactive: false
         }).addTo(this.map);
         this.biomeLayers.push(circle, labelMarker);
+        this.biomeShapes[biome.id] = { circle, labelMarker };
+      });
+    }
+    // 잠긴 구역은 회색과 자물쇠로 보여 줍니다.
+    updateZoneLocks(isUnlocked) {
+      Object.values(BIOMES).forEach((biome) => {
+        const shape = this.biomeShapes && this.biomeShapes[biome.id];
+        if (!shape) return;
+        const open = isUnlocked(biome.id);
+        shape.circle.setStyle(open ? { color: biome.borderColor, fillColor: biome.color, fillOpacity: 0.12, dashArray: "6, 8" } : { color: "#64748b", fillColor: "#334155", fillOpacity: 0.35, dashArray: "2, 6" });
+        const pill = shape.labelMarker.getElement() && shape.labelMarker.getElement().querySelector(".biome-pill");
+        if (pill) {
+          pill.classList.toggle("locked", !open);
+          pill.querySelector(".biome-icon").textContent = open ? biome.icon : "🔒";
+          pill.querySelector(".biome-text").textContent = open ? `${biome.shortName} 바이옴` : `${biome.shortName} (잠김)`;
+        }
       });
     }
     renderEcoStops() {
@@ -4450,6 +4467,76 @@
     }
   };
 
+  // js/zones.js
+  var ZONES = {
+    stream: {
+      id: "stream",
+      name: "초량천",
+      neighbors: ["mountain", "harbor"],
+      intro: "도심 속 하천을 따라 물고기, 물새, 곤충을 만나요. 숲과 바다 사이에 있어 양쪽 구역과 이어져요."
+    },
+    mountain: {
+      id: "mountain",
+      name: "수정산·구봉산",
+      neighbors: ["stream"],
+      intro: "숲속에서 멧돼지, 다람쥐, 딱따구리, 버섯을 만나요."
+    },
+    harbor: {
+      id: "harbor",
+      name: "북항",
+      neighbors: ["stream"],
+      intro: "바닷가에서 갈매기, 숭어, 가마우지, 바닷가 식물을 만나요."
+    }
+  };
+  var SPECIES_TO_UNLOCK = 4;
+  function requiredLevel(unlockedCount) {
+    return unlockedCount * 2 + 1;
+  }
+  function zoneSpecies(zoneId) {
+    return CREATURES_DATA.filter((c) => c.biome === zoneId && !c.isPast && !c.isBoss);
+  }
+  function zoneProgress(discovered, zoneId) {
+    const species = zoneSpecies(zoneId);
+    return { caught: species.filter((c) => discovered[c.id]).length, total: species.length };
+  }
+  function findNewUnlocks(unlocked, discovered, level) {
+    const open = new Set(unlocked);
+    const added = [];
+    let changed = true;
+    while (changed) {
+      changed = false;
+      for (const zone of Object.values(ZONES)) {
+        if (open.has(zone.id)) continue;
+        const fromNeighbor = zone.neighbors.find((n) => open.has(n) && zoneProgress(discovered, n).caught >= SPECIES_TO_UNLOCK);
+        if (fromNeighbor && level >= requiredLevel(open.size)) {
+          open.add(zone.id);
+          added.push(zone.id);
+          changed = true;
+        }
+      }
+    }
+    return added;
+  }
+  function unlockHint(zoneId, unlocked, discovered) {
+    const zone = ZONES[zoneId];
+    const openNeighbors = zone.neighbors.filter((n) => unlocked.includes(n));
+    const level = requiredLevel(unlocked.length);
+    if (!openNeighbors.length) {
+      const via = zone.neighbors.map((n) => ZONES[n].name).join(" 또는 ");
+      return `먼저 ${via} 구역을 열어야 해요.`;
+    }
+    const parts = openNeighbors.map((n) => {
+      const p = zoneProgress(discovered, n);
+      return `${ZONES[n].name} 생물 ${Math.min(p.caught, SPECIES_TO_UNLOCK)}/${SPECIES_TO_UNLOCK}종`;
+    });
+    return `${parts.join(" 또는 ")} 등록 + 탐험가 Lv.${level}`;
+  }
+  function zoneLabel(zoneId) {
+    const biome = BIOMES[zoneId];
+    const zone = ZONES[zoneId];
+    return biome && zone ? `${biome.icon} ${zone.name}` : zoneId;
+  }
+
   // js/dex.js
   var DexManager = class {
     constructor(onStateChange) {
@@ -4467,7 +4554,8 @@
         visitedStops: {},
         completedQuests: {},
         activeQuestProgress: {},
-        quizStats: { correct: 0, total: 0 }
+        quizStats: { correct: 0, total: 0 },
+        zones: { start: null, unlocked: [] }
       };
     }
     loadState() {
@@ -4762,6 +4850,7 @@
       }
     }
     unlockAllForDemo() {
+      this.state.zones = { start: this.getZones().start || "stream", unlocked: Object.keys(BIOMES) };
       CREATURES_DATA.forEach((c) => {
         this.state.discovered[c.id] = {
           id: c.id,
@@ -4779,6 +4868,25 @@
       this.state = this.getDefaultState();
       this.saveState();
       this.renderDexGrid();
+    }
+    // ----- 탐사 구역 -----
+    getZones() {
+      if (!this.state.zones) this.state.zones = { start: null, unlocked: [] };
+      return this.state.zones;
+    }
+    isZoneUnlocked(zoneId) {
+      return this.getZones().unlocked.includes(zoneId);
+    }
+    chooseStartZone(zoneId) {
+      this.state.zones = { start: zoneId, unlocked: [zoneId] };
+      this.saveState();
+    }
+    unlockZones(zoneIds) {
+      const zones = this.getZones();
+      zoneIds.forEach((id) => {
+        if (!zones.unlocked.includes(id)) zones.unlocked.push(id);
+      });
+      this.saveState();
     }
   };
 
@@ -4798,6 +4906,7 @@
       this.currentInteractingSpawn = null;
       this.bossRespawnAt = {};
       this.lastPosSaveAt = 0;
+      this.lastZoneId = null;
     }
     async init() {
       this.dex = new DexManager(() => this.updateHUD());
@@ -4846,12 +4955,16 @@
         const apiPrompted = sessionStorage.getItem("api_prompted");
         const apiKeyModal = document.getElementById("api-key-modal");
         const guideModal = document.getElementById("guide-modal");
-        if (!apiKey && !apiPrompted && apiKeyModal) {
+        if (!this.dex.getZones().start) {
+          this.openStartZoneModal();
+        } else if (!apiKey && !apiPrompted && apiKeyModal) {
           apiKeyModal.classList.remove("hidden");
         } else if (guideModal) {
           guideModal.classList.remove("hidden");
         }
       }, 500);
+      this.bindZoneUI();
+      this.refreshZones();
     }
     initialSpawnBatch() {
       for (let i = 0; i < 4; i++) {
@@ -4882,7 +4995,7 @@
         const dist = this.map.calculateDistanceMeters(playerPos.lat, playerPos.lng, spot.lat, spot.lng);
         if (dist > spot.radius) return;
         const creature = CREATURES_DATA.find((c) => c.id === creatureId);
-        if (!creature) return;
+        if (!creature || !this.dex.isZoneUnlocked(creature.biome)) return;
         const spawned = {
           ...creature,
           spawnId,
@@ -4900,11 +5013,13 @@
       const playerPos = this.map.playerPos;
       const weatherCond = this.weather.currentWeather.condition;
       const currentBiomeId = this.detectPlayerBiome(playerPos.lat, playerPos.lng);
+      if (!this.dex.isZoneUnlocked(currentBiomeId)) return;
       const eligibleCreatures = [];
       const isDisturbRoll = Math.random() < 0.18;
       const isPastRoll = !isDisturbRoll && Math.random() < 0.14;
       CREATURES_DATA.forEach((c) => {
         if (c.isBoss) return;
+        if (!c.isPast && !this.dex.isZoneUnlocked(c.biome)) return;
         let weight = 10;
         if (c.isInvasive) {
           if (!isDisturbRoll) return;
@@ -4976,12 +5091,125 @@
     }
     onPlayerMove(lat, lng) {
       const currentBiomeId = this.detectPlayerBiome(lat, lng);
-      const biome = BIOMES[currentBiomeId];
-      const biomeBadge = document.getElementById("hud-current-biome");
-      if (biomeBadge && biome) {
-        biomeBadge.innerHTML = `<span class="biome-icon">${biome.icon}</span> <span>${biome.shortName} 바이옴</span>`;
-        biomeBadge.style.borderColor = biome.borderColor;
+      this.updateZoneBadge(currentBiomeId);
+      if (currentBiomeId !== this.lastZoneId) {
+        if (this.lastZoneId && this.dex.getZones().start && !this.dex.isZoneUnlocked(currentBiomeId)) {
+          this.showToast(`🔒 ${ZONES[currentBiomeId].name} 구역은 아직 잠겨 있어 생물이 나오지 않아요. (${unlockHint(currentBiomeId, this.dex.getZones().unlocked, this.dex.state.discovered)})`);
+        }
+        this.lastZoneId = currentBiomeId;
       }
+    }
+    updateZoneBadge(zoneId = this.detectPlayerBiome(this.map.playerPos.lat, this.map.playerPos.lng)) {
+      const biome = BIOMES[zoneId];
+      const biomeBadge = document.getElementById("hud-current-biome");
+      if (!biomeBadge || !biome) return;
+      const open = this.dex.isZoneUnlocked(zoneId);
+      const p = zoneProgress(this.dex.state.discovered, zoneId);
+      biomeBadge.innerHTML = `<span class="biome-icon">${open ? biome.icon : "🔒"}</span> <span>${ZONES[zoneId].name} ${open ? `${p.caught}/${p.total}종` : "(잠김)"}</span>`;
+      biomeBadge.style.borderColor = open ? biome.borderColor : "#64748b";
+    }
+    // ----- 탐사 구역: 시작 구역 고르기 · 해금 -----
+    refreshZones() {
+      const isOpen = (id) => this.dex.isZoneUnlocked(id);
+      this.map.updateZoneLocks(isOpen);
+      document.querySelectorAll(".teleport-spot-btn").forEach((btn) => {
+        const zoneId = this.detectPlayerBiome(parseFloat(btn.dataset.lat), parseFloat(btn.dataset.lng));
+        btn.classList.toggle("locked", !isOpen(zoneId));
+        btn.dataset.zone = zoneId;
+      });
+      this.updateZoneBadge();
+    }
+    checkZoneUnlocks() {
+      const zones = this.dex.getZones();
+      if (!zones.start) return;
+      const level = this.dex.getCurrentRank().current.level;
+      const added = findNewUnlocks(zones.unlocked, this.dex.state.discovered, level);
+      if (!added.length) return;
+      this.dex.unlockZones(added);
+      this.refreshZones();
+      sound.playSuccess();
+      added.forEach((id, i) => setTimeout(() => this.showToast(`🎉 새 구역이 열렸어요: ${zoneLabel(id)}! 🚀 거점순간이동으로 가 보세요.`), 600 + i * 3400));
+    }
+    openStartZoneModal() {
+      const modal = document.getElementById("start-zone-modal");
+      const list = document.getElementById("start-zone-list");
+      if (!modal || !list) return;
+      list.innerHTML = "";
+      Object.values(ZONES).forEach((zone) => {
+        const biome = BIOMES[zone.id];
+        const btn = document.createElement("button");
+        btn.className = "start-zone-btn";
+        btn.style.borderColor = biome.borderColor;
+        btn.innerHTML = `<span class="start-zone-icon">${biome.icon}</span><span class="start-zone-text"><b></b><span></span></span>`;
+        btn.querySelector("b").textContent = zone.name;
+        btn.querySelector(".start-zone-text span").textContent = zone.intro;
+        btn.onclick = () => {
+          sound.playSuccess();
+          this.dex.chooseStartZone(zone.id);
+          modal.classList.add("hidden");
+          const target = this.map.playerPos && this.detectPlayerBiome(this.map.playerPos.lat, this.map.playerPos.lng) === zone.id ? this.map.playerPos : biome.center;
+          this.map.teleportPlayer(target.lat, target.lng);
+          this.onPlayerMove(target.lat, target.lng);
+          this.savePlayerPosition(target.lat, target.lng);
+          this.activeSpawns.forEach((spawn, id) => {
+            this.map.removeCreatureMarker(id);
+          });
+          this.activeSpawns.clear();
+          this.refreshZones();
+          this.checkZoneUnlocks();
+          this.initialSpawnBatch();
+          this.updateRadarList();
+          this.showToast(`${zoneLabel(zone.id)}에서 탐사를 시작해요! 이 구역 생물 ${SPECIES_TO_UNLOCK}종을 등록하고 레벨을 올리면 이웃 구역이 열려요.`);
+          const guideModal = document.getElementById("guide-modal");
+          if (guideModal) setTimeout(() => guideModal.classList.remove("hidden"), 400);
+        };
+        list.appendChild(btn);
+      });
+      modal.classList.remove("hidden");
+    }
+    openZoneMapModal() {
+      const modal = document.getElementById("zone-map-modal");
+      const list = document.getElementById("zone-map-list");
+      if (!modal || !list) return;
+      const zones = this.dex.getZones();
+      const level = this.dex.getCurrentRank().current.level;
+      list.innerHTML = "";
+      Object.values(ZONES).forEach((zone) => {
+        const biome = BIOMES[zone.id];
+        const open = zones.unlocked.includes(zone.id);
+        const p = zoneProgress(this.dex.state.discovered, zone.id);
+        const card = document.createElement("div");
+        card.className = `zone-card${open ? "" : " locked"}`;
+        card.innerHTML = `
+        <div class="zone-card-head"><span class="zone-card-icon"></span><b class="zone-card-name"></b><span class="zone-card-status"></span></div>
+        <div class="zone-card-bar"><div class="zone-card-fill"></div></div>
+        <div class="zone-card-desc"></div>`;
+        card.querySelector(".zone-card-icon").textContent = open ? biome.icon : "🔒";
+        card.querySelector(".zone-card-name").textContent = zone.name;
+        card.querySelector(".zone-card-status").textContent = open ? zone.id === zones.start ? "🚩 시작 구역" : "🔓 열림" : "잠김";
+        card.querySelector(".zone-card-fill").style.width = `${Math.round(p.caught / p.total * 100)}%`;
+        card.querySelector(".zone-card-desc").textContent = open ? `생물 ${p.caught}/${p.total}종 등록 · 이웃 구역: ${zone.neighbors.map((n) => ZONES[n].name).join(", ")}` : `여는 방법: ${unlockHint(zone.id, zones.unlocked, this.dex.state.discovered)}`;
+        list.appendChild(card);
+      });
+      const summary = document.getElementById("zone-map-summary");
+      if (summary) summary.textContent = `지금 탐험가 Lv.${level} · 열린 구역 ${zones.unlocked.length}/${Object.keys(ZONES).length}개 · 다음 구역을 열려면 Lv.${requiredLevel(zones.unlocked.length)} 필요`;
+      modal.classList.remove("hidden");
+    }
+    bindZoneUI() {
+      const badge = document.getElementById("hud-current-biome");
+      if (badge) {
+        badge.style.cursor = "pointer";
+        badge.title = "눌러서 탐사 구역 지도 보기";
+        badge.onclick = () => {
+          sound.playClick();
+          this.openZoneMapModal();
+        };
+      }
+      const closeBtn = document.getElementById("zone-map-close-btn");
+      if (closeBtn) closeBtn.onclick = () => {
+        sound.playClick();
+        document.getElementById("zone-map-modal").classList.add("hidden");
+      };
     }
     savePlayerPositionThrottled(lat, lng) {
       const now = Date.now();
@@ -5055,6 +5283,11 @@
       this.showToast(`💨 ${creature ? creature.name : "생물"}이(가) 수풀 속으로 달아났습니다! 다음엔 꼭 맞혀 봐요.`);
     }
     onEcoStopMarkerClick(stop, dist) {
+      if (!this.dex.isZoneUnlocked(stop.biome)) {
+        sound.playClick();
+        this.showToast(`🔒 ${ZONES[stop.biome].name} 구역이 열리면 이 거점을 방문할 수 있어요. (${unlockHint(stop.biome, this.dex.getZones().unlocked, this.dex.state.discovered)})`);
+        return;
+      }
       sound.playClick();
       const modal = document.getElementById("ecostop-modal");
       if (!modal) return;
@@ -5121,6 +5354,10 @@
       const purifyScoreEl = document.getElementById("hud-purify-score");
       if (bioScoreEl) bioScoreEl.innerText = this.dex.state.biodiversityIndex;
       if (purifyScoreEl) purifyScoreEl.innerText = this.dex.state.purifyPoints;
+      if (this.map && this.map.map) {
+        this.checkZoneUnlocks();
+        this.updateZoneBadge();
+      }
     }
     updateRadarList() {
       const radarListEl = document.getElementById("radar-creatures-list");
@@ -5308,6 +5545,10 @@
       document.querySelectorAll(".teleport-spot-btn").forEach((btn) => {
         btn.onclick = () => {
           sound.playClick();
+          if (btn.dataset.zone && !this.dex.isZoneUnlocked(btn.dataset.zone)) {
+            this.showToast(`🔒 아직 잠긴 구역이에요. 여는 방법: ${unlockHint(btn.dataset.zone, this.dex.getZones().unlocked, this.dex.state.discovered)}`);
+            return;
+          }
           const lat = parseFloat(btn.getAttribute("data-lat"));
           const lng = parseFloat(btn.getAttribute("data-lng"));
           this.map.teleportPlayer(lat, lng);
@@ -5410,6 +5651,7 @@
           sound.playSuccess();
           this.dex.unlockAllForDemo();
           this.updateHUD();
+          this.refreshZones();
           this.showToast("✨ 교사용 시연 모드: 도감 모든 종이 일괄 등록되었습니다!");
         };
       }
@@ -5419,7 +5661,10 @@
           if (confirm("모든 도감 수집 데이터와 랭크를 초기화할까요?")) {
             this.dex.resetAllData();
             this.updateHUD();
-            this.showToast("도감 데이터가 초기화되었습니다.");
+            this.refreshZones();
+            this.dex.closeDexModal();
+            this.showToast("도감 데이터가 초기화되었습니다. 시작 구역을 다시 골라 주세요.");
+            this.openStartZoneModal();
           }
         };
       }
@@ -5517,6 +5762,8 @@
       const toast = document.createElement("div");
       toast.className = "eco-floating-toast";
       toast.innerText = message;
+      const stacked = document.querySelectorAll(".eco-floating-toast").length;
+      toast.style.marginTop = `${stacked * 52}px`;
       document.body.appendChild(toast);
       setTimeout(() => toast.classList.add("visible"), 50);
       setTimeout(() => {

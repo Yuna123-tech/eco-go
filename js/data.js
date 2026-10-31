@@ -1564,19 +1564,19 @@ export const EXPLORER_RANKS = [
   },
   {
     level: 3,
-    title: '초량천 지킴이',
+    title: '꼬마 생태 지킴이',
     minExp: 250,
     icon: '💧'
   },
   {
     level: 4,
-    title: '수정산 탐험가',
+    title: '구역 개척자',
     minExp: 450,
     icon: '🌲'
   },
   {
     level: 5,
-    title: '북항 바다 파수꾼',
+    title: '생태 파수꾼',
     minExp: 700,
     icon: '🌊'
   },

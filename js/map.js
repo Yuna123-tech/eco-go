@@ -115,6 +115,7 @@ export class EcoMap {
   }
 
   renderBiomes() {
+    this.biomeShapes = {};
     Object.values(BIOMES).forEach(biome => {
       const circle = L.circle([biome.center.lat, biome.center.lng], {
         radius: biome.radius,
@@ -144,6 +145,25 @@ export class EcoMap {
       }).addTo(this.map);
 
       this.biomeLayers.push(circle, labelMarker);
+      this.biomeShapes[biome.id] = { circle, labelMarker };
+    });
+  }
+
+  // 잠긴 구역은 회색과 자물쇠로 보여 줍니다.
+  updateZoneLocks(isUnlocked) {
+    Object.values(BIOMES).forEach(biome => {
+      const shape = this.biomeShapes && this.biomeShapes[biome.id];
+      if (!shape) return;
+      const open = isUnlocked(biome.id);
+      shape.circle.setStyle(open
+        ? { color: biome.borderColor, fillColor: biome.color, fillOpacity: 0.12, dashArray: '6, 8' }
+        : { color: '#64748b', fillColor: '#334155', fillOpacity: 0.35, dashArray: '2, 6' });
+      const pill = shape.labelMarker.getElement() && shape.labelMarker.getElement().querySelector('.biome-pill');
+      if (pill) {
+        pill.classList.toggle('locked', !open);
+        pill.querySelector('.biome-icon').textContent = open ? biome.icon : '🔒';
+        pill.querySelector('.biome-text').textContent = open ? `${biome.shortName} 바이옴` : `${biome.shortName} (잠김)`;
+      }
     });
   }
 

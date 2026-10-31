@@ -1644,6 +1644,120 @@ body.weather-mode-night #map-container {
   border-color: #f59e0b;
 }
 
+/* 탐사 구역: 시작 고르기 · 구역 지도 */
+.start-zone-list,
+.zone-map-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.start-zone-btn {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 14px;
+  border-radius: 16px;
+  border: 2px solid;
+  background: rgba(255, 255, 255, 0.05);
+  color: #fff;
+  text-align: left;
+  cursor: pointer;
+  transition: transform 0.15s, background 0.2s;
+}
+
+.start-zone-btn:hover {
+  background: rgba(255, 255, 255, 0.12);
+  transform: translateY(-2px);
+}
+
+.start-zone-icon {
+  font-size: 34px;
+}
+
+.start-zone-text {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+  color: #cbd5e1;
+  line-height: 1.5;
+}
+
+.start-zone-text b {
+  font-size: 16px;
+  color: #fff;
+}
+
+.zone-map-summary {
+  font-size: 12px;
+  color: #94a3b8;
+  margin-bottom: 10px;
+}
+
+.zone-card {
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: rgba(16, 185, 129, 0.1);
+  border: 1px solid rgba(16, 185, 129, 0.4);
+}
+
+.zone-card.locked {
+  background: rgba(100, 116, 139, 0.12);
+  border-color: rgba(100, 116, 139, 0.5);
+}
+
+.zone-card-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+}
+
+.zone-card-icon {
+  font-size: 20px;
+}
+
+.zone-card-status {
+  margin-left: auto;
+  font-size: 11px;
+  font-weight: 700;
+  color: #6ee7b7;
+}
+
+.zone-card.locked .zone-card-status {
+  color: #94a3b8;
+}
+
+.zone-card-bar {
+  height: 6px;
+  margin: 8px 0 6px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.1);
+  overflow: hidden;
+}
+
+.zone-card-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #10b981, #a3e635);
+}
+
+.zone-card-desc {
+  font-size: 12px;
+  color: #cbd5e1;
+}
+
+.biome-pill.locked {
+  border-color: #64748b !important;
+  color: #94a3b8 !important;
+}
+
+.teleport-spot-btn.locked {
+  opacity: 0.5;
+  filter: grayscale(1);
+}
+
 /* 문제 범위 설정 */
 .hud-btn-mini.highlight-quiz {
   background: linear-gradient(135deg, #f59e0b, #ef4444) !important;

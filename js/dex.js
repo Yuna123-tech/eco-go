@@ -4,7 +4,7 @@
  */
 
 import { STORAGE_KEY } from './constants.js';
-import { CREATURES_DATA, EXPLORER_RANKS, QUESTS_LIST } from './data.js';
+import { BIOMES, CREATURES_DATA, EXPLORER_RANKS, QUESTS_LIST } from './data.js';
 import { sound } from './audio.js';
 import { renderLearningNote } from './learning.js';
 
@@ -25,7 +25,8 @@ export class DexManager {
       visitedStops: {},
       completedQuests: {},
       activeQuestProgress: {},
-      quizStats: { correct: 0, total: 0 }
+      quizStats: { correct: 0, total: 0 },
+      zones: { start: null, unlocked: [] }
     };
   }
 
@@ -361,6 +362,7 @@ export class DexManager {
   }
 
   unlockAllForDemo() {
+    this.state.zones = { start: this.getZones().start || 'stream', unlocked: Object.keys(BIOMES) };
     CREATURES_DATA.forEach(c => {
       this.state.discovered[c.id] = {
         id: c.id,
@@ -379,5 +381,26 @@ export class DexManager {
     this.state = this.getDefaultState();
     this.saveState();
     this.renderDexGrid();
+  }
+
+  // ----- 탐사 구역 -----
+  getZones() {
+    if (!this.state.zones) this.state.zones = { start: null, unlocked: [] };
+    return this.state.zones;
+  }
+
+  isZoneUnlocked(zoneId) {
+    return this.getZones().unlocked.includes(zoneId);
+  }
+
+  chooseStartZone(zoneId) {
+    this.state.zones = { start: zoneId, unlocked: [zoneId] };
+    this.saveState();
+  }
+
+  unlockZones(zoneIds) {
+    const zones = this.getZones();
+    zoneIds.forEach(id => { if (!zones.unlocked.includes(id)) zones.unlocked.push(id); });
+    this.saveState();
   }
 }

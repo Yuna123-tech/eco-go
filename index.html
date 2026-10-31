@@ -475,6 +475,37 @@
   </div>
 
   <!-- (7) 생태 퀘스트 모달 (Quests Modal) -->
+  <div class="modal-backdrop hidden" id="start-zone-modal">
+    <div class="modal-window">
+      <div class="modal-header">
+        <div class="modal-title-group">
+          <span class="modal-title-icon">🚩</span>
+          <span class="modal-title-text">어디서 탐사를 시작할까요?</span>
+        </div>
+      </div>
+      <div class="modal-body">
+        <p class="quiz-settings-desc">처음에는 고른 구역만 열려 있어요. 그 구역에서 생물을 등록하고 레벨을 올리면 <b>이웃 구역</b>이 하나씩 열려요.</p>
+        <div class="start-zone-list" id="start-zone-list"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-backdrop hidden" id="zone-map-modal">
+    <div class="modal-window">
+      <div class="modal-header">
+        <div class="modal-title-group">
+          <span class="modal-title-icon">🗺️</span>
+          <span class="modal-title-text">탐사 구역 지도</span>
+        </div>
+        <button class="modal-close-btn" id="zone-map-close-btn">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="zone-map-summary" id="zone-map-summary"></div>
+        <div class="zone-map-list" id="zone-map-list"></div>
+      </div>
+    </div>
+  </div>
+
   <div class="modal-backdrop hidden" id="quiz-settings-modal">
     <div class="modal-window">
       <div class="modal-header">
